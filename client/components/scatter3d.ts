@@ -117,13 +117,14 @@ export function scatter3D(
   renderer.render(scene, camera);
 
   var paused = false;
-  var last = new Date().getTime();
   var down = false;
   var sx = 0,
       sy = 0;
       
   window.onmousedown = function(ev) {
     down = true;
+    dx = 0;
+    dy = 0;
     sx = ev.clientX;
     sy = ev.clientY;
   };
@@ -132,10 +133,11 @@ export function scatter3D(
     down = false;
   };
 
+  let dx: number = 0, dy: number = 0;
   window.onmousemove = function(ev) {
     if (down) {
-      var dx = ev.clientX - sx;
-      var dy = ev.clientY - sy;
+      dx = ev.clientX - sx;
+      dy = ev.clientY - sy;
       scatterPlot.rotation.y += dx * 0.01;
       camera.position.y += dy * 0.01;
       sx += dx;
@@ -150,19 +152,12 @@ export function scatter3D(
 
   function animate(t: number) {
     if (!paused) {
-      last = t;
-      /*
-      if (animating) {
-        var v = pointGeo.vertices;
-        for (var i = 0; i < v.length; i++) {
-          var u = v[i];
-          console.log(u)
-          u.angle += u.speed * 0.01;
-          u.x = Math.cos(u.angle) * u.radius;
-          u.z = Math.sin(u.angle) * u.radius;
-        }
-        pointGeo.__dirtyVertices = true;
-      }*/
+      if (!down) {
+        dx *= 0.99;
+        dy *= 0.95;
+        scatterPlot.rotation.y += dx * 0.01;
+        camera.position.y += dy * 0.01;
+      }
 
       renderer.clear();
       camera.lookAt(scene.position);
