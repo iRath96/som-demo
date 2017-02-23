@@ -1,99 +1,35 @@
 import * as React from "react";
-
-interface IVector {
-  euclideanDistance(other: this): number;
-  toArray(): number[];
-}
-
-export class Vector3D implements IVector {
-  constructor(
-    public x: number,
-    public y: number,
-    public z: number
-  ) {}
-
-  euclideanDistance(other: Vector3D) {
-    let xd = other.x - this.x;
-    let yd = other.y - this.y;
-    let zd = other.z - this.z;
-
-    return Math.sqrt(
-      xd * xd + yd * yd + zd * zd
-    );
-  }
-
-  scalarMultiply(scalar: number) {
-    this.x *= scalar;
-    this.y *= scalar;
-    this.z *= scalar;
-    return this;
-  }
-
-  add(other: Vector3D, scalar: number = 1) {
-    this.x += other.x * scalar;
-    this.y += other.y * scalar;
-    this.z += other.z * scalar;
-    return this;
-  }
-  
-  toArray() {
-    return [ this.x, this.y, this.z ];
-  }
-}
-
-export class Vector2D implements IVector {
-  constructor(
-    public x: number,
-    public y: number
-  ) {}
-
-  euclideanDistance(other: Vector2D) {
-    let xd = other.x - this.x;
-    let yd = other.y - this.y;
-
-    return Math.sqrt(
-      xd * xd + yd * yd
-    );
-  }
-
-  toArray() {
-    return [ this.x, this.y ];
-  }
-}
-
-export class Vector1D implements IVector {
-  constructor(
-    public x: number
-  ) {}
-
-  euclideanDistance(other: Vector1D) {
-    return Math.abs(other.x - this.x);
-  }
-
-  toArray() {
-    return [ this.x ];
-  }
-}
+import { IVector, Vector3D, Vector2D, Vector1D } from "./Vector";
 
 interface IProps {
   dataset: Vector3D[];
   neurons: Neuron<any, Vector3D>[];
+  animating: boolean;
 }
 
 import { scatter3D } from "./scatter3d";
 
 export class ScatterPlot extends React.Component<IProps, void> {
   protected renderElement: HTMLCanvasElement;
+  protected ref: any;
 
   componentDidMount() {
-    scatter3D(
+    this.ref = scatter3D(
       this.refs["canvas"] as any,
       this.props.dataset.map(v => v.toArray()),
       this.props.neurons.map(n => ({
-        weights: n.weights.toArray(),
+        weights: n.weights,
         position: n.position.toArray()
       }))
     );
+  }
+
+  componentWillReceiveProps(props: IProps) {
+    this.ref.animating = props.animating;
+  }
+
+  shouldComponentUpdate() {
+    return false;
   }
 
   render() {
@@ -117,26 +53,56 @@ class Neuron<TPosition extends IVector, TWeights extends IVector> {
   }
 }
 
-export default class App extends React.Component<void, void> {
+interface IState {
+  animationInterval: number | null;
+}
+
+export default class App extends React.Component<void, IState> {
   dataset: Vector3D[] = [];
   neurons: Neuron<Vector1D, Vector3D>[] = [];
   
   constructor() {
     super();
 
+    this.state = {
+      animationInterval: null
+    };
+
+    const rnd = () => {
+      let u1 = 1.0 - Math.random();
+      let u2 = 1.0 - Math.random();
+      
+      return Math.sqrt(-2.0 * Math.log(u1)) * Math.sin(2.0 * Math.PI * u2);
+    };
+
+    /*let centers = [
+      [ 0, 0, 0 ],
+      [ 0, 1, 0 ],
+      [ 0, 0, 1 ],
+      [ 1, 0, 0 ]
+    ];*/
+
     for (let i = 0; i < 10000; ++i) {
-      let a = Math.random() - 0.5;
-      let b = Math.random() - 0.5;
+      let a = rnd() * 0.2;
+      let b = rnd() * 0.2;
 
       this.dataset.push(new Vector3D(
-        Math.sin(1.5 * a) + Math.random() * 0.3,
-        (Math.cos(1.5 * a) + Math.sin(2.5 * b)) * 0.5 + Math.random() * 0.3,
-        Math.cos(2.5 * b) + Math.random() * 0.3
+        Math.sin(1.5 * a) + rnd() * 0.02,
+        (Math.cos(1.5 * a) + Math.sin(2.5 * b)) * 0.5 + rnd() * 0.02,
+        Math.cos(2.5 * b) + rnd() * 0.02
       ));
+
+      /*let [ cx, cy, cz ] = centers[Math.floor(Math.random() * centers.length)];
+
+      this.dataset.push(new Vector3D(
+        rnd() * 0.1 + cx,
+        rnd() * 0.1 + cy,
+        rnd() * 0.1 + cz
+      ));*/
     }
 
-    for (let x = 0; x < 12; ++x)
-      for (let y = 0; y < 12; ++y)
+    for (let x = 0; x < 24; ++x)
+      for (let y = 0; y < 24; ++y)
         this.neurons.push(new Neuron(
           new Vector2D(x, y),
           new Vector3D(
@@ -145,13 +111,30 @@ export default class App extends React.Component<void, void> {
             Math.random() * 0.2
           )
         ));
+  }
+
+  protected startAnimating() {
+    if (this.state.animationInterval !== null)
+      // already animating
+      return;
     
-    for (let i = 0; i < 10000; ++i)
-      this.iteration();
+    this.setState({
+      animationInterval: setInterval(() => {
+        for (let i = 0; i < 10; ++i)
+          this.iteration();
+      }, 1000 / 30) as any
+    })
+  }
+
+  protected stopAnimating() {
+    clearInterval(this.state.animationInterval as any);
+    this.setState({
+      animationInterval: null
+    });
   }
 
   protected learningFactor = 0.1;
-  protected neighborSize = 12 / 2;
+  protected neighborSize = 24 / 2;
 
   protected iteration() {
     let input = this.dataset[Math.floor(Math.random() * this.dataset.length)];
@@ -175,13 +158,18 @@ export default class App extends React.Component<void, void> {
     });
 
     this.learningFactor *= 0.9995;
-    this.neighborSize *= 0.9994;
+    this.neighborSize *= 0.999;
   }
 
   render() {
-    return <ScatterPlot
-      dataset={this.dataset}
-      neurons={this.neurons}
-    />;
+    return <div>
+      <ScatterPlot
+        dataset={this.dataset}
+        neurons={this.neurons}
+        animating={this.state.animationInterval !== null}
+      />
+      <input type="button" value="Start animation" onClick={() => this.startAnimating()} />
+      <input type="button" value="Stop animation" onClick={() => this.stopAnimating()} />
+    </div>;
   }
 }

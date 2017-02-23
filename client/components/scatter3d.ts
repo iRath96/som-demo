@@ -1,13 +1,18 @@
 import * as THREE from "three";
+import { Vector3D } from "./Vector";
 
 export function scatter3D(
   canvas: HTMLCanvasElement,
   dataset: number[][],
   neurons: {
-    weights: number[],
+    weights: Vector3D,
     position: number[]
   }[]
 ) {
+  var ref = {
+    animating: false
+  };
+
   var renderer = new THREE.WebGLRenderer({
     antialias: true,
     canvas
@@ -80,10 +85,18 @@ export function scatter3D(
     scatterPlot.add(points);
   }
 
+  var weightsToVectors = new Map<Vector3D, Set<THREE.Vector3>>();
+  var lineGeo = new THREE.Geometry();
+
   {
-    var lineGeo = new THREE.Geometry();
     neurons.forEach(a => {
+      if (!weightsToVectors.has(a.weights))
+        weightsToVectors.set(a.weights, new Set<THREE.Vector3>());
+      
       neurons.forEach(b => {
+        if (!weightsToVectors.has(b.weights))
+          weightsToVectors.set(b.weights, new Set<THREE.Vector3>());
+
         let valid = a.position
           .map((v, i) => b.position[i] - v)
           .reduce((valid: boolean | null, v) => {
@@ -93,11 +106,18 @@ export function scatter3D(
             return valid === null;
           }, null);
         
-        if (valid)
+        if (valid) {
+          let aWT = new THREE.Vector3(a.weights.x, a.weights.y, a.weights.z);
+          let bWT = new THREE.Vector3(b.weights.x, b.weights.y, b.weights.z);
+
+          weightsToVectors.get(a.weights)!.add(aWT);
+          weightsToVectors.get(b.weights)!.add(bWT);
+
           lineGeo.vertices.push(
-            new THREE.Vector3(a.weights[0], a.weights[1], a.weights[2]),
-            new THREE.Vector3(b.weights[0], b.weights[1], b.weights[2])
+            aWT,
+            bWT
           );
+        }
       });
     });
 
@@ -116,7 +136,6 @@ export function scatter3D(
 
   renderer.render(scene, camera);
 
-  var paused = false;
   var down = false;
   var sx = 0,
       sy = 0;
@@ -151,13 +170,24 @@ export function scatter3D(
   };
 
   function animate(t: number) {
-    if (!paused) {
+    if (down || Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1 || ref.animating) {
       if (!down) {
         dx *= 0.99;
         dy *= 0.95;
         scatterPlot.rotation.y += dx * 0.01;
         camera.position.y += dy * 0.01;
       }
+
+      [ ...weightsToVectors ].forEach(([ weight, tvs ]) => {
+        tvs.forEach(tv => {
+          tv.x = weight.x - 0.5;
+          tv.y = weight.y - 0.5;
+          tv.z = weight.z - 0.5;
+        });
+      });
+
+      if (ref.animating)
+        lineGeo.verticesNeedUpdate = true;
 
       renderer.clear();
       camera.lookAt(scene.position);
@@ -169,5 +199,5 @@ export function scatter3D(
 
   animate(new Date().getTime());
 
-  return renderer.domElement;
+  return ref;
 }
