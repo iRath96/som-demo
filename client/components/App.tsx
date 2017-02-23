@@ -158,9 +158,9 @@ export default class App extends React.Component<void, IState> {
         this.neurons.push(new Neuron(
           new Vector2D(x, y),
           new Vector3D(
-            Math.random() * 0.2,
-            Math.random() * 0.2,
-            Math.random() * 0.2
+            Math.random(),
+            Math.random(),
+            Math.random()
           )
         ));
   }
@@ -172,8 +172,7 @@ export default class App extends React.Component<void, IState> {
     
     this.setState({
       animationInterval: setInterval(() => {
-        for (let i = 0; i < 100; ++i)
-          this.iteration();
+        this.iterate(10);
       }, 1000 / 10) as any
     })
   }
@@ -185,31 +184,39 @@ export default class App extends React.Component<void, IState> {
     });
   }
 
-  protected iteration() {
-    let input = this.dataset[Math.floor(Math.random() * this.dataset.length)];
-    let bmu = this.neurons.reduce((bmu, neuron) =>
-      bmu.weights.euclideanDistance(input) <= neuron.weights.euclideanDistance(input)
-      ? bmu
-      : neuron
-    );
-
-    this.neurons.forEach(neuron => {
-      let bmuDistance = bmu.position.euclideanDistance(neuron.position);
-
-      let df = Math.exp(
-        -bmuDistance * bmuDistance /
-        (2 * this.state.neighborSize * this.state.neighborSize)
+  protected iterate(count: number = 1) {
+    let learningFactor = this.state.learningFactor;
+    let neighborSize = this.state.neighborSize;
+    
+    for (let i = 0; i < count; ++i) {
+      let input = this.dataset[Math.floor(Math.random() * this.dataset.length)];
+      let bmu = this.neurons.reduce((bmu, neuron) =>
+        bmu.weights.euclideanDistance(input) <= neuron.weights.euclideanDistance(input)
+        ? bmu
+        : neuron
       );
 
-      let lf = 1.0 - this.state.learningFactor * df;
-      neuron.weights.scalarMultiply(lf);
-      neuron.weights.add(input, 1.0 - lf);
-    });
+      this.neurons.forEach(neuron => {
+        let bmuDistance = bmu.position.euclideanDistance(neuron.position);
+
+        let df = Math.exp(
+          -bmuDistance * bmuDistance /
+          (2 * this.state.neighborSize * this.state.neighborSize)
+        );
+
+        let lf = 1.0 - this.state.learningFactor * df;
+        neuron.weights.scalarMultiply(lf);
+        neuron.weights.add(input, 1.0 - lf);
+      });
+
+      learningFactor *= 0.9995;
+      neighborSize *= 0.999;
+    }
 
     this.setState({
-      learningFactor: this.state.learningFactor * 0.9995,
-      neighborSize: this.state.neighborSize * 0.999
-    })
+      learningFactor,
+      neighborSize
+    });
   }
 
   protected reset() {
@@ -219,9 +226,9 @@ export default class App extends React.Component<void, IState> {
     });
 
     this.neurons.forEach(neuron => {
-      neuron.weights.x = Math.random() * 0.2;
-      neuron.weights.y = Math.random() * 0.2;
-      neuron.weights.z = Math.random() * 0.2;
+      neuron.weights.x = Math.random();
+      neuron.weights.y = Math.random();
+      neuron.weights.z = Math.random();
     });
   }
 
@@ -235,7 +242,7 @@ export default class App extends React.Component<void, IState> {
       <b>LF:</b> {this.state.learningFactor.toFixed(5)}, <b>NS:</b> {this.state.neighborSize.toFixed(5)}
       <input type="button" value="Start animation" onClick={() => this.startAnimating()} />
       <input type="button" value="Stop animation" onClick={() => this.stopAnimating()} />
-      <input type="button" value="Iteration" onClick={() => this.iteration()} />
+      <input type="button" value="Iteration" onClick={() => this.iterate()} />
       <input type="button" value="Reset" onClick={() => this.reset()} />
       <GridPlot
         neurons={this.neurons.concat([])}
