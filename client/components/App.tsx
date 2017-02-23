@@ -1,5 +1,5 @@
 import * as React from "react";
-import { IVector, Vector3D, Vector2D, Vector1D } from "./Vector";
+import { IVector, Vector3D, Vector2D } from "./Vector";
 
 interface IProps {
   dataset: Vector3D[];
@@ -59,9 +59,54 @@ interface IState {
   neighborSize: number;
 }
 
+class GridPlot extends React.Component<{
+  neurons: Neuron<Vector2D, Vector3D>[],
+  tileWidth: number,
+  tileHeight: number,
+  width: number,
+  height: number
+}, void> {
+  protected colorForNeuron(neuron: Neuron<Vector2D, Vector3D>) {
+    return "rgb(" +
+      neuron.weights
+        .toArray()
+        .map(v => Math.max(0, Math.min(Math.floor(v * 255), 255)))
+        .join(", ") +
+    ")";
+  }
+
+  componentWillReceiveProps(props: IProps) {
+    let canvas = this.refs["canvas"] as HTMLCanvasElement;
+    let ctx = canvas.getContext("2d")!;
+
+    // redraw canvas
+    props.neurons.forEach(neuron => {
+      ctx.fillStyle = this.colorForNeuron(neuron);
+      ctx.fillRect(
+        neuron.position.x * this.props.tileWidth,
+        neuron.position.y * this.props.tileHeight,
+        this.props.tileWidth,
+        this.props.tileHeight
+      );
+    });
+  }
+
+  shouldComponentUpdate() {
+    return false;
+  }
+
+  render() {
+    return <canvas
+      ref="canvas"
+      width={this.props.width * this.props.tileWidth}
+      height={this.props.height * this.props.tileHeight}
+    />;
+  }
+}
+
 export default class App extends React.Component<void, IState> {
   dataset: Vector3D[] = [];
-  neurons: Neuron<Vector1D, Vector3D>[] = [];
+  neurons: Neuron<Vector2D, Vector3D>[] = [];
   
   constructor() {
     super();
@@ -79,30 +124,33 @@ export default class App extends React.Component<void, IState> {
       return Math.sqrt(-2.0 * Math.log(u1)) * Math.sin(2.0 * Math.PI * u2);
     };
 
-    /*let centers = [
+    let centers = [
       [ 0, 0, 0 ],
       [ 0, 1, 0 ],
       [ 0, 0, 1 ],
-      [ 1, 0, 0 ]
-    ];*/
+      [ 1, 0, 0 ],
+      [ 0.2, 0.5, 0.7 ],
+      [ 0.7, 0.1, 0.8 ],
+      [ 0.5, 0.6, 0.4 ]
+    ];
 
     for (let i = 0; i < 10000; ++i) {
-      let a = rnd() * 0.2;
+      /*let a = rnd() * 0.2;
       let b = rnd() * 0.2;
 
       this.dataset.push(new Vector3D(
         Math.sin(1.5 * a) + rnd() * 0.02,
         (Math.cos(1.5 * a) + Math.sin(2.5 * b)) * 0.5 + rnd() * 0.02,
         Math.cos(2.5 * b) + rnd() * 0.02
-      ));
+      ));*/
 
-      /*let [ cx, cy, cz ] = centers[Math.floor(Math.random() * centers.length)];
+      let [ cx, cy, cz ] = centers[Math.floor(Math.random() * centers.length)];
 
       this.dataset.push(new Vector3D(
         rnd() * 0.1 + cx,
         rnd() * 0.1 + cy,
         rnd() * 0.1 + cz
-      ));*/
+      ));
     }
 
     for (let x = 0; x < 24; ++x)
@@ -169,7 +217,7 @@ export default class App extends React.Component<void, IState> {
       learningFactor: 0.1,
       neighborSize: 24 / 2
     });
-    
+
     this.neurons.forEach(neuron => {
       neuron.weights.x = Math.random() * 0.2;
       neuron.weights.y = Math.random() * 0.2;
@@ -189,6 +237,13 @@ export default class App extends React.Component<void, IState> {
       <input type="button" value="Stop animation" onClick={() => this.stopAnimating()} />
       <input type="button" value="Iteration" onClick={() => this.iteration()} />
       <input type="button" value="Reset" onClick={() => this.reset()} />
+      <GridPlot
+        neurons={this.neurons.concat([])}
+        tileWidth={10}
+        tileHeight={10}
+        width={24}
+        height={24}
+      />
     </div>;
   }
 }
