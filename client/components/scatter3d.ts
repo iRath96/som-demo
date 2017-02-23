@@ -164,13 +164,16 @@ export function scatter3D(
     }
   }
 
-  var animating = false;
-  window.ondblclick = function() {
-    animating = !animating;
-  };
-
+  let needsRender = true;
   function animate(t: number) {
-    if (down || Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1 || ref.animating) {
+    if (
+      needsRender ||
+      down ||
+      Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1 ||
+      ref.animating
+    ) {
+      needsRender = false;
+
       if (!down) {
         dx *= 0.99;
         dy *= 0.95;
@@ -186,7 +189,7 @@ export function scatter3D(
         });
       });
 
-      if (ref.animating)
+      //if (ref.animating)
         lineGeo.verticesNeedUpdate = true;
 
       renderer.clear();

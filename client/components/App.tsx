@@ -55,6 +55,8 @@ class Neuron<TPosition extends IVector, TWeights extends IVector> {
 
 interface IState {
   animationInterval: number | null;
+  learningFactor: number;
+  neighborSize: number;
 }
 
 export default class App extends React.Component<void, IState> {
@@ -65,7 +67,9 @@ export default class App extends React.Component<void, IState> {
     super();
 
     this.state = {
-      animationInterval: null
+      animationInterval: null,
+      learningFactor: 0.1,
+      neighborSize: 24 / 2
     };
 
     const rnd = () => {
@@ -120,9 +124,9 @@ export default class App extends React.Component<void, IState> {
     
     this.setState({
       animationInterval: setInterval(() => {
-        for (let i = 0; i < 10; ++i)
+        for (let i = 0; i < 100; ++i)
           this.iteration();
-      }, 1000 / 30) as any
+      }, 1000 / 10) as any
     })
   }
 
@@ -132,9 +136,6 @@ export default class App extends React.Component<void, IState> {
       animationInterval: null
     });
   }
-
-  protected learningFactor = 0.1;
-  protected neighborSize = 24 / 2;
 
   protected iteration() {
     let input = this.dataset[Math.floor(Math.random() * this.dataset.length)];
@@ -149,16 +150,31 @@ export default class App extends React.Component<void, IState> {
 
       let df = Math.exp(
         -bmuDistance * bmuDistance /
-        (2 * this.neighborSize * this.neighborSize)
+        (2 * this.state.neighborSize * this.state.neighborSize)
       );
 
-      let lf = 1.0 - this.learningFactor * df;
+      let lf = 1.0 - this.state.learningFactor * df;
       neuron.weights.scalarMultiply(lf);
       neuron.weights.add(input, 1.0 - lf);
     });
 
-    this.learningFactor *= 0.9995;
-    this.neighborSize *= 0.999;
+    this.setState({
+      learningFactor: this.state.learningFactor * 0.9995,
+      neighborSize: this.state.neighborSize * 0.999
+    })
+  }
+
+  protected reset() {
+    this.setState({
+      learningFactor: 0.1,
+      neighborSize: 24 / 2
+    });
+    
+    this.neurons.forEach(neuron => {
+      neuron.weights.x = Math.random() * 0.2;
+      neuron.weights.y = Math.random() * 0.2;
+      neuron.weights.z = Math.random() * 0.2;
+    });
   }
 
   render() {
@@ -168,8 +184,11 @@ export default class App extends React.Component<void, IState> {
         neurons={this.neurons}
         animating={this.state.animationInterval !== null}
       />
+      <b>LF:</b> {this.state.learningFactor.toFixed(5)}, <b>NS:</b> {this.state.neighborSize.toFixed(5)}
       <input type="button" value="Start animation" onClick={() => this.startAnimating()} />
       <input type="button" value="Stop animation" onClick={() => this.stopAnimating()} />
+      <input type="button" value="Iteration" onClick={() => this.iteration()} />
+      <input type="button" value="Reset" onClick={() => this.reset()} />
     </div>;
   }
 }
