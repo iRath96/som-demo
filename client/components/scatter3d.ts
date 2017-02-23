@@ -3,7 +3,10 @@ import * as THREE from "three";
 export function scatter3D(
   canvas: HTMLCanvasElement,
   dataset: number[][],
-  neurons: number[][]
+  neurons: {
+    weights: number[],
+    position: number[]
+  }[]
 ) {
   var renderer = new THREE.WebGLRenderer({
     antialias: true,
@@ -16,7 +19,7 @@ export function scatter3D(
   renderer.setClearColor(0xEEEEEE, 1.0);
 
   var camera = new THREE.PerspectiveCamera(45, w / h, 1, 10000);
-  camera.position.z = 2;
+  camera.position.z = 3;
   camera.position.x = -1;
   camera.position.y = 1;
 
@@ -44,6 +47,10 @@ export function scatter3D(
     v(vpts.xMin, vpts.yMin, vpts.zMin), v(vpts.xMin, vpts.yMin, vpts.zMax)
   );
 
+  lineGeo.applyMatrix(
+    new THREE.Matrix4().makeTranslation(-0.5, -0.5, -0.5)
+  );
+
   var lineMat = new THREE.LineBasicMaterial({
     color: 0x000000,
     linewidth: 2
@@ -65,42 +72,45 @@ export function scatter3D(
       pointGeo.vertices.push(new THREE.Vector3(x, y, z));
     }
 
+    pointGeo.applyMatrix(
+      new THREE.Matrix4().makeTranslation(-0.5, -0.5, -0.5)
+    );
+
     var points = new THREE.ParticleSystem(pointGeo, mat);
     scatterPlot.add(points);
   }
 
   {
-    /*
-    var mat = new THREE.ParticleBasicMaterial({
-      color: 0xff0000,
-      size: 0.05
-    });
-
-    var pointCount = neurons.length;
-    var pointGeo = new THREE.Geometry();
-    for (var i = 0; i < pointCount; ++i) {
-      let [ x, y, z ] = neurons[i];
-      pointGeo.vertices.push(new THREE.Vector3(x, y, z));
-    }
-
-    var points = new THREE.ParticleSystem(pointGeo, mat);
-    scatterPlot.add(points);
-    */
-
     var lineGeo = new THREE.Geometry();
-    neurons
-      .map(([ x, y, z ]) => new THREE.Vector3(x, y, z))
-      .reduce((a, b) => {
-        lineGeo.vertices.push(a, b);
-        return b;
+    neurons.forEach(a => {
+      neurons.forEach(b => {
+        let valid = a.position
+          .map((v, i) => b.position[i] - v)
+          .reduce((valid: boolean | null, v) => {
+            if (valid === false) return false;
+            if (v === 0) return valid;
+            if (v !== 1) return false;
+            return valid === null;
+          }, null);
+        
+        if (valid)
+          lineGeo.vertices.push(
+            new THREE.Vector3(a.weights[0], a.weights[1], a.weights[2]),
+            new THREE.Vector3(b.weights[0], b.weights[1], b.weights[2])
+          );
       });
+    });
 
     var lineMat = new THREE.LineBasicMaterial({
       color: 0xff0000,
       linewidth: 4
     });
 
-    var line = new THREE.Line(lineGeo, lineMat);
+    lineGeo.applyMatrix(
+      new THREE.Matrix4().makeTranslation(-0.5, -0.5, -0.5)
+    );
+
+    var line = new THREE.LineSegments(lineGeo, lineMat);
     scatterPlot.add(line);
   }
 

@@ -41,7 +41,6 @@ export class Vector3D implements IVector {
   }
 }
 
-/*
 export class Vector2D implements IVector {
   constructor(
     public x: number,
@@ -49,9 +48,18 @@ export class Vector2D implements IVector {
   ) {}
 
   euclideanDistance(other: Vector2D) {
+    let xd = other.x - this.x;
+    let yd = other.y - this.y;
 
+    return Math.sqrt(
+      xd * xd + yd * yd
+    );
   }
-}*/
+
+  toArray() {
+    return [ this.x, this.y ];
+  }
+}
 
 export class Vector1D implements IVector {
   constructor(
@@ -81,7 +89,10 @@ export class ScatterPlot extends React.Component<IProps, void> {
     scatter3D(
       this.refs["canvas"] as any,
       this.props.dataset.map(v => v.toArray()),
-      this.props.neurons.map(n => n.weights).map(v => v.toArray())
+      this.props.neurons.map(n => ({
+        weights: n.weights.toArray(),
+        position: n.position.toArray()
+      }))
     );
   }
 
@@ -113,34 +124,34 @@ export default class App extends React.Component<void, void> {
   constructor() {
     super();
 
-    for (let i = 0; i < 500; ++i) {
-      let t = Math.random();
+    for (let i = 0; i < 10000; ++i) {
+      let a = Math.random() - 0.5;
+      let b = Math.random() - 0.5;
 
       this.dataset.push(new Vector3D(
-        Math.sin(t * 24) * t + 0.1 * Math.random(),
-        Math.cos(t * 24) * t + 0.1 * Math.random(),
-        1.0 - t + 0.1 * Math.random()
+        Math.sin(1.5 * a) + Math.random() * 0.3,
+        (Math.cos(1.5 * a) + Math.sin(2.5 * b)) * 0.5 + Math.random() * 0.3,
+        Math.cos(2.5 * b) + Math.random() * 0.3
       ));
     }
 
-    for (let x = 0; x < 40; ++x)
-      this.neurons.push(new Neuron(
-        new Vector1D(x),
-        new Vector3D(
-          Math.random(),
-          Math.random(),
-          Math.random()
-        )
-      ));
+    for (let x = 0; x < 12; ++x)
+      for (let y = 0; y < 12; ++y)
+        this.neurons.push(new Neuron(
+          new Vector2D(x, y),
+          new Vector3D(
+            Math.random() * 0.2,
+            Math.random() * 0.2,
+            Math.random() * 0.2
+          )
+        ));
     
-    for (let i = 0; i < 1000; ++i)
+    for (let i = 0; i < 100000; ++i)
       this.iteration();
-    
-    // alert(this.learningFactor);
   }
 
   protected learningFactor = 0.1;
-  protected neighborSize = 40 / 2;
+  protected neighborSize = 12 / 2;
 
   protected iteration() {
     let input = this.dataset[Math.floor(Math.random() * this.dataset.length)];
@@ -163,8 +174,8 @@ export default class App extends React.Component<void, void> {
       neuron.weights.add(input, 1.0 - lf);
     });
 
-    this.learningFactor *= 0.998;
-    this.neighborSize *= 0.998;
+    this.learningFactor *= 0.9995;
+    this.neighborSize *= 0.9994;
   }
 
   render() {
