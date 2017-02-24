@@ -139,7 +139,7 @@ export default class App extends React.Component<void, IState> {
 
     this.state = {
       animationInterval: null,
-      learningFactor: 0.1,
+      learningFactor: 0.5,
       neighborSize: 24 / 2
     };
 
@@ -183,9 +183,9 @@ export default class App extends React.Component<void, IState> {
         let [ cx, cy, cz ] = centers[Math.floor(Math.random() * centers.length)];
 
         this.dataset.push(new Vector3D(
-          rnd() * 0.02 + cx,
-          rnd() * 0.02 + cy,
-          rnd() * 0.02 + cz
+          rnd() * 0.05 + cx,
+          rnd() * 0.05 + cy,
+          rnd() * 0.05 + cz
         ));
       }
     }
@@ -209,7 +209,7 @@ export default class App extends React.Component<void, IState> {
     
     this.setState({
       animationInterval: setInterval(() => {
-        this.iterate(10);
+        this.iterate(1000);
       }, 1000 / 10) as any
     })
   }
@@ -246,8 +246,8 @@ export default class App extends React.Component<void, IState> {
         neuron.weights.add(input, 1.0 - lf);
       });
 
-      learningFactor *= 0.9995;
-      neighborSize *= 0.999;
+      learningFactor *= 0.99995;
+      neighborSize *= 0.99995;
     }
 
     this.setState({
@@ -258,7 +258,7 @@ export default class App extends React.Component<void, IState> {
 
   protected reset() {
     this.setState({
-      learningFactor: 0.1,
+      learningFactor: 0.5,
       neighborSize: 24 / 2
     });
 

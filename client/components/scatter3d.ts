@@ -23,7 +23,7 @@ export function scatter3D(
 
   renderer.setClearColor(0xEEEEEE, 1.0);
 
-  var camera = new THREE.PerspectiveCamera(45, w / h, 1, 10000);
+  var camera = new THREE.PerspectiveCamera(30, w / h, 1, 10000);
   camera.position.z = 3;
   camera.position.x = -1;
   camera.position.y = 1;
