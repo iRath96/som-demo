@@ -1,5 +1,7 @@
 export interface IVector {
   euclideanDistance(other: this): number;
+  manhattenDistance(other: this): number;
+
   toArray(): number[];
 }
 
@@ -18,6 +20,13 @@ export class Vector3D implements IVector {
     return Math.sqrt(
       xd * xd + yd * yd + zd * zd
     );
+  }
+  manhattenDistance(other: Vector3D) {
+    let xd = other.x - this.x;
+    let yd = other.y - this.y;
+    let zd = other.z - this.z;
+
+    return Math.abs(xd) + Math.abs(yd) + Math.abs(zd);
   }
 
   scalarMultiply(scalar: number) {
@@ -54,6 +63,13 @@ export class Vector2D implements IVector {
     );
   }
 
+  manhattenDistance(other: Vector2D) {
+    let xd = other.x - this.x;
+    let yd = other.y - this.y;
+
+    return Math.abs(xd) + Math.abs(yd);
+  }
+
   toArray() {
     return [ this.x, this.y ];
   }
@@ -65,6 +81,10 @@ export class Vector1D implements IVector {
   ) {}
 
   euclideanDistance(other: Vector1D) {
+    return Math.abs(other.x - this.x);
+  }
+
+  manhattenDistance(other: Vector1D) {
     return Math.abs(other.x - this.x);
   }
 

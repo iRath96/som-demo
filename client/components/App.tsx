@@ -75,15 +75,41 @@ class GridPlot extends React.Component<{
     ")";
   }
 
+  protected avgDistForNeuron(neuron: Neuron<Vector2D, Vector3D>) {
+    let neighbors = this.props.neurons
+      .filter(neighbor => neuron.position.manhattenDistance(neighbor.position) === 1)
+      .map(neighbor => neuron.weights.euclideanDistance(neighbor.weights));
+    return neighbors.reduce((sum, v) => sum + v) / neighbors.length;
+  }
+
   componentWillReceiveProps(props: IProps) {
     let canvas = this.refs["canvas"] as HTMLCanvasElement;
     let ctx = canvas.getContext("2d")!;
+
+    let umatrix = new Map<Neuron<Vector2D, Vector3D>, number>();
+    props.neurons.forEach(neuron =>
+      umatrix.set(neuron, this.avgDistForNeuron(neuron))
+    );
+
+    let v = [ ...umatrix.values() ].sort((a, b) => a - b);
+    let minDist = v.shift();
+    let maxDist = v.pop();
 
     // redraw canvas
     props.neurons.forEach(neuron => {
       ctx.fillStyle = this.colorForNeuron(neuron);
       ctx.fillRect(
         neuron.position.x * this.props.tileWidth,
+        neuron.position.y * this.props.tileHeight,
+        this.props.tileWidth,
+        this.props.tileHeight
+      );
+
+      let normDist = (umatrix.get(neuron)! - minDist) / (maxDist - minDist);
+      let shade = Math.floor(normDist * 255);
+      ctx.fillStyle = `rgb(${shade}, ${shade}, ${shade})`;
+      ctx.fillRect(
+        (neuron.position.x + this.props.width) * this.props.tileWidth,
         neuron.position.y * this.props.tileHeight,
         this.props.tileWidth,
         this.props.tileHeight
@@ -98,7 +124,7 @@ class GridPlot extends React.Component<{
   render() {
     return <canvas
       ref="canvas"
-      width={this.props.width * this.props.tileWidth}
+      width={2 * this.props.width * this.props.tileWidth}
       height={this.props.height * this.props.tileHeight}
     />;
   }
@@ -124,6 +150,7 @@ export default class App extends React.Component<void, IState> {
       return Math.sqrt(-2.0 * Math.log(u1)) * Math.sin(2.0 * Math.PI * u2);
     };
 
+    /*
     let centers = [
       [ 0, 0, 0 ],
       [ 0, 1, 0 ],
@@ -132,25 +159,35 @@ export default class App extends React.Component<void, IState> {
       [ 0.2, 0.5, 0.7 ],
       [ 0.7, 0.1, 0.8 ],
       [ 0.5, 0.6, 0.4 ]
-    ];
+    ];*/
+
+    let centers = [];
+    for (let i = 0; i < 6; ++i)
+      centers.push([
+        Math.random(),
+        Math.random(),
+        Math.random()
+      ]);
 
     for (let i = 0; i < 10000; ++i) {
-      /*let a = rnd() * 0.2;
-      let b = rnd() * 0.2;
+      if (0 > 1) {
+        let a = rnd() * 0.2;
+        let b = rnd() * 0.2;
 
-      this.dataset.push(new Vector3D(
-        Math.sin(1.5 * a) + rnd() * 0.02,
-        (Math.cos(1.5 * a) + Math.sin(2.5 * b)) * 0.5 + rnd() * 0.02,
-        Math.cos(2.5 * b) + rnd() * 0.02
-      ));*/
+        this.dataset.push(new Vector3D(
+          Math.sin(1.5 * a) + rnd() * 0.02 + 0.5,
+          (Math.cos(1.5 * a) + Math.sin(2.5 * b)) * 0.5 + rnd() * 0.02 + 0.2,
+          Math.cos(2.5 * b) + rnd() * 0.02 + 0.2 
+        ));
+      } else {
+        let [ cx, cy, cz ] = centers[Math.floor(Math.random() * centers.length)];
 
-      let [ cx, cy, cz ] = centers[Math.floor(Math.random() * centers.length)];
-
-      this.dataset.push(new Vector3D(
-        rnd() * 0.1 + cx,
-        rnd() * 0.1 + cy,
-        rnd() * 0.1 + cz
-      ));
+        this.dataset.push(new Vector3D(
+          rnd() * 0.02 + cx,
+          rnd() * 0.02 + cy,
+          rnd() * 0.02 + cz
+        ));
+      }
     }
 
     for (let x = 0; x < 24; ++x)
