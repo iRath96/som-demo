@@ -10,7 +10,6 @@ new WebpackDevServer(webpack(webpackDevConfig), {
   contentBase: "./client/",
   inline: true,
   hot: true,
-  stats: false,
   historyApiFallback: true,
   headers: {
     "Access-Control-Allow-Origin": "http://localhost:3001",

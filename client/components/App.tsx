@@ -53,12 +53,6 @@ class Neuron<TPosition extends IVector, TWeights extends IVector> {
   }
 }
 
-interface IState {
-  animationInterval: number | null;
-  learningFactor: number;
-  neighborSize: number;
-}
-
 class GridPlot extends React.Component<{
   neurons: Neuron<Vector2D, Vector3D>[],
   tileWidth: number,
@@ -92,8 +86,8 @@ class GridPlot extends React.Component<{
     );
 
     let v = [ ...umatrix.values() ].sort((a, b) => a - b);
-    let minDist = v.shift();
-    let maxDist = v.pop();
+    let minDist = v.shift()!;
+    let maxDist = v.pop()!;
 
     // redraw canvas
     props.neurons.forEach(neuron => {
@@ -130,6 +124,13 @@ class GridPlot extends React.Component<{
   }
 }
 
+interface IState {
+  animationInterval: number | null;
+  learningFactor: number;
+  neighborSize: number;
+  animationSpeed: number;
+}
+
 export default class App extends React.Component<void, IState> {
   dataset: Vector3D[] = [];
   neurons: Neuron<Vector2D, Vector3D>[] = [];
@@ -140,7 +141,8 @@ export default class App extends React.Component<void, IState> {
     this.state = {
       animationInterval: null,
       learningFactor: 0.5,
-      neighborSize: 24 / 2
+      neighborSize: 24 / 2,
+      animationSpeed: 1
     };
 
     const rnd = () => {
@@ -170,9 +172,9 @@ export default class App extends React.Component<void, IState> {
       ]);
 
     for (let i = 0; i < 10000; ++i) {
-      if (0 > 1) {
-        let a = rnd() * 0.2;
-        let b = rnd() * 0.2;
+      if (0 < 1) {
+        let a = rnd() * 0.4;
+        let b = rnd() * 0.4;
 
         this.dataset.push(new Vector3D(
           Math.sin(1.5 * a) + rnd() * 0.02 + 0.5,
@@ -209,8 +211,8 @@ export default class App extends React.Component<void, IState> {
     
     this.setState({
       animationInterval: setInterval(() => {
-        this.iterate(1000);
-      }, 1000 / 10) as any
+        this.iterate(this.state.animationSpeed < 1 ? 1 : this.state.animationSpeed);
+      }, 1000 / 10 / (this.state.animationSpeed < 1 ? this.state.animationSpeed : 1)) as any
     })
   }
 
@@ -281,6 +283,16 @@ export default class App extends React.Component<void, IState> {
       <input type="button" value="Stop animation" onClick={() => this.stopAnimating()} />
       <input type="button" value="Iteration" onClick={() => this.iterate()} />
       <input type="button" value="Reset" onClick={() => this.reset()} />
+      <select value={this.state.animationSpeed} onChange={e => this.setState({
+        animationSpeed: Number(e.currentTarget.value)
+      })}>
+        <option value="0.1">0.1x</option>
+        <option value="1">1x</option>
+        <option value="10">10x</option>
+        <option value="100">100x</option>
+        <option value="1000">1000x</option>
+        <option value="10000">10000x</option>
+      </select>
       <GridPlot
         neurons={this.neurons.concat([])}
         tileWidth={10}
