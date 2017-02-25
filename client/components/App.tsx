@@ -31,6 +31,7 @@ export class ScatterPlot extends React.Component<IProps, void> {
 
   componentWillReceiveProps(props: IProps) {
     this.ref.animating = props.animating;
+    this.ref.needsRender = true;
   }
 
   shouldComponentUpdate() {
@@ -299,14 +300,14 @@ export default class App extends React.Component<void, IState> {
       <IconButton
         iconClassName="material-icons"
         tooltip="Reset"
-        onClick={this.reset.bind(this)}
+        onClick={() => this.reset()}
       >
         replay
       </IconButton>
       <IconButton
         iconClassName="material-icons"
         tooltip="One iteration"
-        onClick={this.iterate.bind(this)}
+        onClick={() => this.iterate()}
       >
         skip_next
       </IconButton>

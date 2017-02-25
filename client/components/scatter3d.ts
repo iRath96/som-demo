@@ -10,7 +10,8 @@ export function scatter3D(
   }[]
 ) {
   var ref = {
-    animating: false
+    animating: false,
+    needsRender: true
   };
 
   var renderer = new THREE.WebGLRenderer({
@@ -164,15 +165,14 @@ export function scatter3D(
     }
   }
 
-  let needsRender = true;
   function animate(t: number) {
     if (
-      needsRender ||
+      ref.needsRender ||
       down ||
       Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1 ||
       ref.animating
     ) {
-      needsRender = false;
+      ref.needsRender = false;
 
       if (!down) {
         dx *= 0.99;
