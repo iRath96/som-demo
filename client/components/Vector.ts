@@ -3,6 +3,9 @@ export interface IVector {
   manhattenDistance(other: this): number;
 
   toArray(): number[];
+
+  zero(): this;
+  clone(): this;
 }
 
 export class Vector3D implements IVector {
@@ -21,6 +24,7 @@ export class Vector3D implements IVector {
       xd * xd + yd * yd + zd * zd
     );
   }
+
   manhattenDistance(other: Vector3D) {
     let xd = other.x - this.x;
     let yd = other.y - this.y;
@@ -45,6 +49,17 @@ export class Vector3D implements IVector {
   
   toArray() {
     return [ this.x, this.y, this.z ];
+  }
+
+  zero() {
+    this.x = 0;
+    this.y = 0;
+    this.z = 0;
+    return this;
+  }
+
+  clone() {
+    return new Vector3D(this.x, this.y, this.z) as this;
   }
 }
 
@@ -73,6 +88,16 @@ export class Vector2D implements IVector {
   toArray() {
     return [ this.x, this.y ];
   }
+
+  zero() {
+    this.x = 0;
+    this.y = 0;
+    return this;
+  }
+
+  clone() {
+    return new Vector2D(this.x, this.y) as this;
+  }
 }
 
 export class Vector1D implements IVector {
@@ -90,5 +115,14 @@ export class Vector1D implements IVector {
 
   toArray() {
     return [ this.x ];
+  }
+
+  zero() {
+    this.x = 0;
+    return this;
+  }
+
+  clone() {
+    return new Vector1D(this.x) as this;
   }
 }

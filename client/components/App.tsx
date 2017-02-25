@@ -132,6 +132,8 @@ class GridPlot extends React.Component<{
 
 interface IState {
   animationInterval: number | null;
+  stepAnimationInterval: number | null;
+
   learningFactor: number;
   neighborSize: number;
   animationSpeed: number;
@@ -146,6 +148,8 @@ export default class App extends React.Component<void, IState> {
 
     this.state = {
       animationInterval: null,
+      stepAnimationInterval: null,
+
       learningFactor: 0.5,
       neighborSize: 24 / 2,
       animationSpeed: 1
@@ -263,6 +267,61 @@ export default class App extends React.Component<void, IState> {
     });
   }
 
+  protected iterateAnimated() {
+    if (this.state.stepAnimationInterval !== null)
+      return;
+    
+    let input = this.dataset[Math.floor(Math.random() * this.dataset.length)];
+    let bmu = this.neurons.reduce((bmu, neuron) =>
+      bmu.weights.euclideanDistance(input) <= neuron.weights.euclideanDistance(input)
+      ? bmu
+      : neuron
+    );
+
+    let positions = new Map<Neuron<Vector2D, Vector3D>, [ Vector3D, Vector3D ]>();
+
+    this.neurons.forEach(neuron => {
+      let bmuDistance = bmu.position.euclideanDistance(neuron.position);
+
+      let df = Math.exp(
+        -bmuDistance * bmuDistance /
+        (2 * this.state.neighborSize * this.state.neighborSize)
+      );
+
+      let lf = 1.0 - this.state.learningFactor * df;
+      let newPos = neuron.weights.clone();
+      newPos.scalarMultiply(lf);
+      newPos.add(input, 1.0 - lf);
+      positions.set(neuron, [ neuron.weights.clone(), newPos ]);
+    });
+
+    let t = 0;
+    this.setState({
+      stepAnimationInterval: setInterval(() => {
+        positions.forEach(([ a, b ], neuron) => {
+          let e = t < 0.5 ? 4 * Math.pow(t, 3) : 4 * Math.pow(t - 1, 3) + 1;
+          
+          neuron.weights
+            .zero()
+            .add(a, 1 - e)
+            .add(b, e);
+        });
+
+        this.forceUpdate();
+        if (t >= 1) {
+          clearInterval(this.state.stepAnimationInterval as any);
+          this.setState({
+            stepAnimationInterval: null
+          });
+
+          return;
+        }
+
+        t += 0.05; // @todo Magic constant
+      }, 1000 / 30) as any
+    });
+  }
+
   get isAnimating() {
     return this.state.animationInterval !== null;
   }
@@ -287,7 +346,10 @@ export default class App extends React.Component<void, IState> {
       <ScatterPlot
         dataset={this.dataset}
         neurons={this.neurons}
-        animating={this.state.animationInterval !== null}
+        animating={
+          this.state.animationInterval !== null ||
+          this.state.stepAnimationInterval !== null
+        }
       />
       <b>LF:</b> {this.state.learningFactor.toFixed(5)}, <b>NS:</b> {this.state.neighborSize.toFixed(5)}
       <IconButton
@@ -307,7 +369,7 @@ export default class App extends React.Component<void, IState> {
       <IconButton
         iconClassName="material-icons"
         tooltip="One iteration"
-        onClick={() => this.iterate()}
+        onClick={() => this.iterateAnimated()}
       >
         skip_next
       </IconButton>
