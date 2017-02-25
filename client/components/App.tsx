@@ -1,6 +1,11 @@
 import * as React from "react";
 import { IVector, Vector3D, Vector2D } from "./Vector";
 
+import IconButton from "material-ui/IconButton";
+import Slider from "material-ui/Slider";
+
+// import FlatButton from "material-ui/FlatButton";
+
 interface IProps {
   dataset: Vector3D[];
   neurons: Neuron<any, Vector3D>[];
@@ -205,8 +210,7 @@ export default class App extends React.Component<void, IState> {
   }
 
   protected startAnimating() {
-    if (this.state.animationInterval !== null)
-      // already animating
+    if (this.isAnimating)
       return;
     
     this.setState({
@@ -258,7 +262,13 @@ export default class App extends React.Component<void, IState> {
     });
   }
 
+  get isAnimating() {
+    return this.state.animationInterval !== null;
+  }
+
   protected reset() {
+    this.stopAnimating();
+
     this.setState({
       learningFactor: 0.5,
       neighborSize: 24 / 2
@@ -279,20 +289,33 @@ export default class App extends React.Component<void, IState> {
         animating={this.state.animationInterval !== null}
       />
       <b>LF:</b> {this.state.learningFactor.toFixed(5)}, <b>NS:</b> {this.state.neighborSize.toFixed(5)}
-      <input type="button" value="Start animation" onClick={() => this.startAnimating()} />
-      <input type="button" value="Stop animation" onClick={() => this.stopAnimating()} />
-      <input type="button" value="Iteration" onClick={() => this.iterate()} />
-      <input type="button" value="Reset" onClick={() => this.reset()} />
-      <select value={this.state.animationSpeed} onChange={e => this.setState({
-        animationSpeed: Number(e.currentTarget.value)
-      })}>
-        <option value="0.1">0.1x</option>
-        <option value="1">1x</option>
-        <option value="10">10x</option>
-        <option value="100">100x</option>
-        <option value="1000">1000x</option>
-        <option value="10000">10000x</option>
-      </select>
+      <IconButton
+        iconClassName="material-icons"
+        tooltip={this.isAnimating ? "Stop animation" : "Start animation"}
+        onClick={(this.isAnimating ? this.stopAnimating : this.startAnimating).bind(this)}
+      >
+        {this.isAnimating ? "pause" : "play_arrow"}
+      </IconButton>
+      <IconButton
+        iconClassName="material-icons"
+        tooltip="Reset"
+        onClick={this.reset.bind(this)}
+      >
+        replay
+      </IconButton>
+      <IconButton
+        iconClassName="material-icons"
+        tooltip="One iteration"
+        onClick={this.iterate.bind(this)}
+      >
+        skip_next
+      </IconButton>
+      <Slider
+        min={1}
+        max={1000}
+        value={this.state.animationSpeed}
+        onChange={(event, animationSpeed) => this.setState({ animationSpeed })}
+      />
       <GridPlot
         neurons={this.neurons.concat([])}
         tileWidth={10}

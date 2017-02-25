@@ -140,7 +140,7 @@ export function scatter3D(
   var sx = 0,
       sy = 0;
       
-  window.onmousedown = function(ev) {
+  canvas.onmousedown = ev => {
     down = true;
     dx = 0;
     dy = 0;
@@ -148,12 +148,12 @@ export function scatter3D(
     sy = ev.clientY;
   };
 
-  window.onmouseup = function() {
+  canvas.onmouseup = () => {
     down = false;
   };
 
   let dx: number = 0, dy: number = 0;
-  window.onmousemove = function(ev) {
+  canvas.onmousemove = ev => {
     if (down) {
       dx = ev.clientX - sx;
       dy = ev.clientY - sy;
