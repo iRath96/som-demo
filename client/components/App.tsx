@@ -4,7 +4,79 @@ import { IVector, Vector3D, Vector2D } from "./Vector";
 import IconButton from "material-ui/IconButton";
 import Slider from "material-ui/Slider";
 
-// import FlatButton from "material-ui/FlatButton";
+const numeric = require("numericjs");
+
+class PCA {
+  public readonly U: number[][];
+  public readonly means: number[];
+  public readonly stddevs: number[];
+  public readonly data: number[][];
+
+  public readonly min: number[];
+  public readonly max: number[];
+
+  constructor(
+    data: number[][],
+    public readonly k: number // reduction
+  ) {
+    // normalize data
+    this.means = PCA.mean(data);
+    data = data.map(row => row.map((v, i) => v - this.means[i]));
+    this.stddevs = PCA.squareMean(data).map(Math.sqrt);
+    data.forEach(row =>
+      row.forEach((v, i) => row[i] /= this.stddevs[i])
+    );
+    this.data = data;
+
+    // do PCA
+    let m = data.length;
+    let sigma = numeric.div(numeric.dot(numeric.transpose(data), data), m);
+    this.U = (numeric.svd(sigma).U as number[][]).map(row =>
+      row.slice(0, k)
+    );
+
+    // find min/max
+    let projected = numeric.dot(this.data, this.U) as number[][];
+    this.min = [ ...projected[0] ];
+    this.max = [ ...projected[0] ];
+    projected.forEach(row =>
+      row.forEach((v, i) => {
+        if (this.min[i] > v)
+          this.min[i] = v;
+        else if (this.max[i] < v)
+          this.max[i] = v;
+      })
+    );
+
+    console.log(this.min, this.max);
+  }
+
+  static mean(data: number[][]) {
+    return data
+      .reduce((sum, row) => {
+        for (let i = 0; i < sum.length; ++i)
+          sum[i] += row[i];
+        return sum;
+      }, data[0].map(v => 0))
+      .map(v => v / data.length);
+  }
+
+  static squareMean(data: number[][]) {
+    return data
+      .reduce((sum, row) => {
+        for (let i = 0; i < sum.length; ++i)
+          sum[i] += row[i] * row[i];
+        return sum;
+      }, data[0].map(v => 0))
+      .map(v => v / data.length);
+  }
+
+  recover(vector: number[]) {
+    vector = vector.map((v, i) => v * (this.max[i] - this.min[i]) + this.min[i]);
+    let raw = numeric.dot(vector, numeric.transpose(this.U)) as number[];
+    return raw.map((v, i) => v * this.stddevs[i] + this.means[i]);
+  }
+}
 
 interface IProps {
   dataset: Vector3D[];
@@ -150,8 +222,8 @@ export default class App extends React.Component<void, IState> {
       animationInterval: null,
       stepAnimationInterval: null,
 
-      learningFactor: 0.5,
-      neighborSize: 24 / 2,
+      learningFactor: 0.1,
+      neighborSize: 24 / 2 * 0.5,
       animationSpeed: 1
     };
 
@@ -182,7 +254,16 @@ export default class App extends React.Component<void, IState> {
       ]);
 
     for (let i = 0; i < 10000; ++i) {
-      if (0 < 1) {
+      /*if (0 < 1) {
+        let a = rnd();
+        let b = rnd();
+
+        this.dataset.push(new Vector3D(
+          a * 0.5 + b * 0.2,
+          a * 0.2 + b,
+          b * 0.8
+        ));
+      } else */if (0 > 1) {
         let a = rnd() * 0.4;
         let b = rnd() * 0.4;
 
@@ -195,23 +276,33 @@ export default class App extends React.Component<void, IState> {
         let [ cx, cy, cz ] = centers[Math.floor(Math.random() * centers.length)];
 
         this.dataset.push(new Vector3D(
-          rnd() * 0.05 + cx,
-          rnd() * 0.05 + cy,
-          rnd() * 0.05 + cz
+          rnd() * 0.01 + cx,
+          rnd() * 0.01 + cy,
+          rnd() * 0.01 + cz
         ));
       }
     }
 
+    let pca = new PCA(
+      this.dataset
+        .filter((v, index) => index % 10 === 0)
+        .map(vector => vector.toArray()),
+      2
+    );
+
     for (let x = 0; x < 24; ++x)
-      for (let y = 0; y < 24; ++y)
+      for (let y = 0; y < 24; ++y) {
+        let [ wx, wy, wz ] = pca.recover([ (x + 0.5) / 24, (y + 0.5) / 24 ]);
         this.neurons.push(new Neuron(
           new Vector2D(x, y),
           new Vector3D(
-            Math.random(),
-            Math.random(),
-            Math.random()
+            wx, wy, wz
+            // Math.random(),
+            // Math.random(),
+            // Math.random()
           )
         ));
+      }
   }
 
   protected startAnimating() {
@@ -221,7 +312,7 @@ export default class App extends React.Component<void, IState> {
     this.setState({
       animationInterval: setInterval(() => {
         this.iterate(this.state.animationSpeed < 1 ? 1 : this.state.animationSpeed);
-      }, 1000 / 10 / (this.state.animationSpeed < 1 ? this.state.animationSpeed : 1)) as any
+      }, 1000 / 30 / (this.state.animationSpeed < 1 ? this.state.animationSpeed : 1)) as any
     })
   }
 
@@ -330,7 +421,7 @@ export default class App extends React.Component<void, IState> {
     this.stopAnimating();
 
     this.setState({
-      learningFactor: 0.5,
+      learningFactor: 0.1,
       neighborSize: 24 / 2
     });
 
