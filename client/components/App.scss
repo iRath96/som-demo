@@ -6,6 +6,7 @@ body {
 :local .main-view {
   position: absolute;
   z-index: 90;
+  
   top: 0;
   bottom: 0;
   left: 0;
@@ -20,12 +21,15 @@ body {
 :local .grid-plot {
   position: absolute;
   z-index: 100;
+
   bottom: 10px;
   right: calc(25% + 10px);
 }
 
 :local .sidebar {
   position: absolute;
+  z-index: 200;
+
   top: 0;
   bottom: 0;
   right: 0;

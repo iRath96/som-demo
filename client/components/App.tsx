@@ -14,6 +14,22 @@ import { Vector3D, Vector2D } from "src/Vector";
 
 const style = require("./App.scss");
 
+class LogSlider extends React.Component<{
+  [key: string]: any;
+
+  value: number;
+  onChange(e: React.MouseEvent<{}>, value: number): void;
+}, void> {
+  render() {
+    let { value, onChange, ...props } = this.props;
+    return <Slider
+      value={Math.log10(value)}
+      onChange={(event, value) => onChange(event, Math.pow(10, value))}
+      {...props}
+    />;
+  }
+}
+
 interface IState {
   animationInterval: number | null;
   stepAnimationInterval: number | null;
@@ -315,12 +331,16 @@ export default class App extends React.Component<void, IState> {
         >
           skip_next
         </IconButton>
-        <Slider
-          min={1}
-          max={1000}
-          value={this.state.animationSpeed}
-          onChange={(event, animationSpeed) => this.setState({ animationSpeed })}
-        />
+        {this.state.animationSpeed}
+        <div style={{ padding: "4px 20px" }}>
+        <LogSlider
+            step={1}
+            min={-1}
+            max={3}
+            value={this.state.animationSpeed}
+            onChange={(event, animationSpeed) => this.setState({ animationSpeed })}
+          />
+        </div>
       </div>
     </div>;
   }
