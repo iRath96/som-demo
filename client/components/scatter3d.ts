@@ -52,30 +52,71 @@ export function scatter3D(
     return new THREE.Vector3(x, y, z);
   }
 
-  const vpts = {
-    xMin: 0, xMax: 1,
-    yMin: 0, yMax: 1,
-    zMin: 0, zMax: 1
+  { // build coordinate system
+    interface IVec {
+      [key: string]: number;
+
+      x: number;
+      y: number;
+      z: number;
+    }
+
+    const vpts: { min: IVec, max: IVec } = {
+      min: { x: 0, y: 0, z: 0 },
+      max: { x: 1, y: 1, z: 1 }
+    };
+
+    let black = new THREE.Color(0, 0, 0);
+    let gray = new THREE.Color(0.8, 0.8, 0.8);
+
+    var lineGeo = new THREE.Geometry();
+    lineGeo.vertices.push(
+      v(vpts.min.x, vpts.min.y, vpts.min.z), v(vpts.max.x, vpts.min.y, vpts.min.z),
+      v(vpts.min.x, vpts.min.y, vpts.min.z), v(vpts.min.x, vpts.max.y, vpts.min.z),
+      v(vpts.min.x, vpts.min.y, vpts.min.z), v(vpts.min.x, vpts.min.y, vpts.max.z)
+    );
+
+    for (let i = 0; i < 6; ++i)
+      lineGeo.colors.push(black);
+
+    let axes = [ "x", "y", "z" ];
+    axes.forEach(axis => {
+      let others = axes.filter(a => a !== axis);
+      for (let value = vpts.min[axis] + 0.1; value < vpts.max[axis]; value += 0.1) {
+        others.forEach(otherAxis => {
+          let a: IVec = { ...vpts.min };
+          let b: IVec = { ...vpts.min };
+
+          a[axis] = value;
+          b[axis] = value;
+
+          a[otherAxis] = vpts.min[otherAxis];
+          b[otherAxis] = vpts.max[otherAxis];
+
+          lineGeo.vertices.push(
+            v(a.x, a.y, a.z), v(b.x, b.y, b.z)
+          );
+
+          lineGeo.colors.push(
+            gray, gray
+          );
+        });
+      }
+    });
+
+    lineGeo.applyMatrix(
+      new THREE.Matrix4().makeTranslation(-0.5, -0.5, -0.5)
+    );
+
+    var lineMat = new THREE.LineBasicMaterial({
+      color: 0xffffff,
+      vertexColors: THREE.VertexColors,
+      linewidth: 2
+    });
+
+    var line = new THREE.Line(lineGeo, lineMat, THREE.LinePieces);
+    scatterPlot.add(line);
   }
-
-  var lineGeo = new THREE.Geometry();
-  lineGeo.vertices.push(
-    v(vpts.xMin, vpts.yMin, vpts.zMin), v(vpts.xMax, vpts.yMin, vpts.zMin),
-    v(vpts.xMin, vpts.yMin, vpts.zMin), v(vpts.xMin, vpts.yMax, vpts.zMin),
-    v(vpts.xMin, vpts.yMin, vpts.zMin), v(vpts.xMin, vpts.yMin, vpts.zMax)
-  );
-
-  lineGeo.applyMatrix(
-    new THREE.Matrix4().makeTranslation(-0.5, -0.5, -0.5)
-  );
-
-  var lineMat = new THREE.LineBasicMaterial({
-    color: 0x000000,
-    linewidth: 2
-  });
-
-  var line = new THREE.Line(lineGeo, lineMat);
-  scatterPlot.add(line);
 
   {
     var mat = new THREE.ParticleBasicMaterial({
@@ -174,7 +215,7 @@ export function scatter3D(
     lastMouseMove = t;
 
     if (down) {
-      let timeFactor = deltaT / 1000 * 60;
+      let timeFactor = Math.max(deltaT / 1000 * 60, 0.001);
 
       dx = (ev.clientX - sx) / timeFactor;
       dy = (ev.clientY - sy) / timeFactor;

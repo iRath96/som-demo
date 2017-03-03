@@ -310,6 +310,12 @@ export default class App extends React.Component<void, IState> {
             
           </Tab>
           <Tab
+            icon={<FontIcon className="material-icons">remove_red_eye</FontIcon>}
+            label="VIEW"
+          >
+            
+          </Tab>
+          <Tab
             icon={<FontIcon className="material-icons">info</FontIcon>}
             label="ABOUT"
           >
