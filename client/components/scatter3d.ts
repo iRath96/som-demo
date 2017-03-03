@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { Vector3D } from "./Vector";
+import { Vector3D } from "src/Vector";
 
 export function scatter3D(
   canvas: HTMLCanvasElement,
@@ -11,23 +11,35 @@ export function scatter3D(
 ) {
   var ref = {
     animating: false,
-    needsRender: true
+    needsRender: true,
+    needsResize: false,
   };
 
   var renderer = new THREE.WebGLRenderer({
     antialias: true,
     canvas
   });
-
-  var w = canvas.width, h = canvas.height;
-  //renderer.setSize(w, h);
-
+ 
   renderer.setClearColor(0xEEEEEE, 1.0);
 
-  var camera = new THREE.PerspectiveCamera(30, w / h, 1, 10000);
+  var camera = new THREE.PerspectiveCamera(30, 1, 1, 10000);
   camera.position.z = 3;
   camera.position.x = -1;
   camera.position.y = 1;
+
+  function resize() {
+    var w = canvas.width, h = canvas.height;
+    
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+
+    renderer.setSize(w, h);
+
+    canvas.style.width = "";
+    canvas.style.height = "";
+  }
+
+  resize();
 
   var scene = new THREE.Scene();
 
@@ -166,6 +178,13 @@ export function scatter3D(
   }
 
   function animate(t: number) {
+    if (ref.needsResize) {
+      resize();
+      
+      ref.needsResize = false;
+      ref.needsRender = true;
+    }
+
     if (
       ref.needsRender ||
       down ||

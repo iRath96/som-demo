@@ -1,206 +1,18 @@
 import * as React from "react";
-import { IVector, Vector3D, Vector2D } from "./Vector";
 
 import IconButton from "material-ui/IconButton";
 import Slider from "material-ui/Slider";
+import { Tabs, Tab } from "material-ui/Tabs";
+import FontIcon from "material-ui/FontIcon";
 
-const numeric = require("numericjs");
+import ScatterPlot from "./ScatterPlot";
+import GridPlot from "./GridPlot";
 
-class PCA {
-  public readonly U: number[][];
-  public readonly means: number[];
-  public readonly stddevs: number[];
-  public readonly data: number[][];
+import PCA from "src/PCA";
+import Neuron from "src/Neuron";
+import { Vector3D, Vector2D } from "src/Vector";
 
-  public readonly min: number[];
-  public readonly max: number[];
-
-  constructor(
-    data: number[][],
-    public readonly k: number // reduction
-  ) {
-    // normalize data
-    this.means = PCA.mean(data);
-    data = data.map(row => row.map((v, i) => v - this.means[i]));
-    this.stddevs = PCA.squareMean(data).map(Math.sqrt);
-    data.forEach(row =>
-      row.forEach((v, i) => row[i] /= this.stddevs[i])
-    );
-    this.data = data;
-
-    // do PCA
-    let m = data.length;
-    let sigma = numeric.div(numeric.dot(numeric.transpose(data), data), m);
-    this.U = (numeric.svd(sigma).U as number[][]).map(row =>
-      row.slice(0, k)
-    );
-
-    // find min/max
-    let projected = numeric.dot(this.data, this.U) as number[][];
-    this.min = [ ...projected[0] ];
-    this.max = [ ...projected[0] ];
-    projected.forEach(row =>
-      row.forEach((v, i) => {
-        if (this.min[i] > v)
-          this.min[i] = v;
-        else if (this.max[i] < v)
-          this.max[i] = v;
-      })
-    );
-
-    console.log(this.min, this.max);
-  }
-
-  static mean(data: number[][]) {
-    return data
-      .reduce((sum, row) => {
-        for (let i = 0; i < sum.length; ++i)
-          sum[i] += row[i];
-        return sum;
-      }, data[0].map(v => 0))
-      .map(v => v / data.length);
-  }
-
-  static squareMean(data: number[][]) {
-    return data
-      .reduce((sum, row) => {
-        for (let i = 0; i < sum.length; ++i)
-          sum[i] += row[i] * row[i];
-        return sum;
-      }, data[0].map(v => 0))
-      .map(v => v / data.length);
-  }
-
-  recover(vector: number[]) {
-    vector = vector.map((v, i) => v * (this.max[i] - this.min[i]) + this.min[i]);
-    let raw = numeric.dot(vector, numeric.transpose(this.U)) as number[];
-    return raw.map((v, i) => v * this.stddevs[i] + this.means[i]);
-  }
-}
-
-interface IProps {
-  dataset: Vector3D[];
-  neurons: Neuron<any, Vector3D>[];
-  animating: boolean;
-}
-
-import { scatter3D } from "./scatter3d";
-
-export class ScatterPlot extends React.Component<IProps, void> {
-  protected renderElement: HTMLCanvasElement;
-  protected ref: any;
-
-  componentDidMount() {
-    this.ref = scatter3D(
-      this.refs["canvas"] as any,
-      this.props.dataset.map(v => v.toArray()),
-      this.props.neurons.map(n => ({
-        weights: n.weights,
-        position: n.position.toArray()
-      }))
-    );
-  }
-
-  componentWillReceiveProps(props: IProps) {
-    this.ref.animating = props.animating;
-    this.ref.needsRender = true;
-  }
-
-  shouldComponentUpdate() {
-    return false;
-  }
-
-  render() {
-    return <canvas
-      ref="canvas"
-      style={{
-        width: 800,
-        height: 600
-      }}
-      width="1600"
-      height="1200"
-    />;
-  }
-}
-
-class Neuron<TPosition extends IVector, TWeights extends IVector> {
-  constructor(
-    public position: TPosition,
-    public weights: TWeights
-  ) {
-  }
-}
-
-class GridPlot extends React.Component<{
-  neurons: Neuron<Vector2D, Vector3D>[],
-  tileWidth: number,
-  tileHeight: number,
-  width: number,
-  height: number
-}, void> {
-  protected colorForNeuron(neuron: Neuron<Vector2D, Vector3D>) {
-    return "rgb(" +
-      neuron.weights
-        .toArray()
-        .map(v => Math.max(0, Math.min(Math.floor(v * 255), 255)))
-        .join(", ") +
-    ")";
-  }
-
-  protected avgDistForNeuron(neuron: Neuron<Vector2D, Vector3D>) {
-    let neighbors = this.props.neurons
-      .filter(neighbor => neuron.position.manhattenDistance(neighbor.position) === 1)
-      .map(neighbor => neuron.weights.euclideanDistance(neighbor.weights));
-    return neighbors.reduce((sum, v) => sum + v) / neighbors.length;
-  }
-
-  componentWillReceiveProps(props: IProps) {
-    let canvas = this.refs["canvas"] as HTMLCanvasElement;
-    let ctx = canvas.getContext("2d")!;
-
-    let umatrix = new Map<Neuron<Vector2D, Vector3D>, number>();
-    props.neurons.forEach(neuron =>
-      umatrix.set(neuron, this.avgDistForNeuron(neuron))
-    );
-
-    let v = [ ...umatrix.values() ].sort((a, b) => a - b);
-    let minDist = v.shift()!;
-    let maxDist = v.pop()!;
-
-    // redraw canvas
-    props.neurons.forEach(neuron => {
-      ctx.fillStyle = this.colorForNeuron(neuron);
-      ctx.fillRect(
-        neuron.position.x * this.props.tileWidth,
-        neuron.position.y * this.props.tileHeight,
-        this.props.tileWidth,
-        this.props.tileHeight
-      );
-
-      let normDist = (umatrix.get(neuron)! - minDist) / (maxDist - minDist);
-      let shade = Math.floor(normDist * 255);
-      ctx.fillStyle = `rgb(${shade}, ${shade}, ${shade})`;
-      ctx.fillRect(
-        (neuron.position.x + this.props.width) * this.props.tileWidth,
-        neuron.position.y * this.props.tileHeight,
-        this.props.tileWidth,
-        this.props.tileHeight
-      );
-    });
-  }
-
-  shouldComponentUpdate() {
-    return false;
-  }
-
-  render() {
-    return <canvas
-      ref="canvas"
-      width={2 * this.props.width * this.props.tileWidth}
-      height={this.props.height * this.props.tileHeight}
-    />;
-  }
-}
+const style = require("./App.scss");
 
 interface IState {
   animationInterval: number | null;
@@ -290,8 +102,8 @@ export default class App extends React.Component<void, IState> {
       2
     );
 
-    for (let x = 0; x < 24; ++x)
-      for (let y = 0; y < 24; ++y) {
+    for (let x = 0; x < 16; ++x)
+      for (let y = 0; y < 16; ++y) {
         let [ wx, wy, wz ] = pca.recover([ (x + 0.5) / 24, (y + 0.5) / 24 ]);
         this.neurons.push(new Neuron(
           new Vector2D(x, y),
@@ -434,49 +246,82 @@ export default class App extends React.Component<void, IState> {
 
   render() {
     return <div>
-      <ScatterPlot
-        dataset={this.dataset}
-        neurons={this.neurons}
-        animating={
-          this.state.animationInterval !== null ||
-          this.state.stepAnimationInterval !== null
-        }
-      />
-      <b>LF:</b> {this.state.learningFactor.toFixed(5)}, <b>NS:</b> {this.state.neighborSize.toFixed(5)}
-      <IconButton
-        iconClassName="material-icons"
-        tooltip={this.isAnimating ? "Stop animation" : "Start animation"}
-        onClick={(this.isAnimating ? this.stopAnimating : this.startAnimating).bind(this)}
-      >
-        {this.isAnimating ? "pause" : "play_arrow"}
-      </IconButton>
-      <IconButton
-        iconClassName="material-icons"
-        tooltip="Reset"
-        onClick={() => this.reset()}
-      >
-        replay
-      </IconButton>
-      <IconButton
-        iconClassName="material-icons"
-        tooltip="One iteration"
-        onClick={() => this.iterateAnimated()}
-      >
-        skip_next
-      </IconButton>
-      <Slider
-        min={1}
-        max={1000}
-        value={this.state.animationSpeed}
-        onChange={(event, animationSpeed) => this.setState({ animationSpeed })}
-      />
-      <GridPlot
-        neurons={this.neurons.concat([])}
-        tileWidth={10}
-        tileHeight={10}
-        width={24}
-        height={24}
-      />
+      <div className={style["main-view"]}>
+        <ScatterPlot
+          dataset={this.dataset}
+          neurons={this.neurons}
+          animating={
+            this.state.animationInterval !== null ||
+            this.state.stepAnimationInterval !== null
+          }
+        />
+      </div>
+      <div className={style["grid-plot"]}>
+        <GridPlot
+          neurons={this.neurons.concat([])}
+          tileWidth={8}
+          tileHeight={8}
+          width={16}
+          height={16}
+        />
+      </div>
+      <div className={style["sidebar"]}>
+        <Tabs>
+          <Tab
+            icon={<FontIcon className="material-icons">pie_chart</FontIcon>}
+            label="DATA"
+          >
+            
+          </Tab>
+          <Tab
+            icon={<FontIcon className="material-icons">apps</FontIcon>}
+            label="MODEL"
+          >
+            
+          </Tab>
+          <Tab
+            icon={<FontIcon className="material-icons">last_page</FontIcon>}
+            label="TRAIN"
+          >
+            
+          </Tab>
+          <Tab
+            icon={<FontIcon className="material-icons">info</FontIcon>}
+            label="ABOUT"
+          >
+            
+          </Tab>
+        </Tabs>
+        <b>LF:</b> {this.state.learningFactor.toFixed(5)}, <b>NS:</b> {this.state.neighborSize.toFixed(5)}
+        <br />
+        <IconButton
+          iconClassName="material-icons"
+          tooltip={this.isAnimating ? "Stop animation" : "Start animation"}
+          onClick={(this.isAnimating ? this.stopAnimating : this.startAnimating).bind(this)}
+        >
+          {this.isAnimating ? "pause" : "play_arrow"}
+        </IconButton>
+        <IconButton
+          iconClassName="material-icons"
+          tooltip="Reset"
+          onClick={() => this.reset()}
+        >
+          replay
+        </IconButton>
+        <IconButton
+          iconClassName="material-icons"
+          tooltip="One iteration"
+          onClick={() => this.iterateAnimated()}
+        >
+          skip_next
+        </IconButton>
+        <Slider
+          min={1}
+          max={1000}
+          value={this.state.animationSpeed}
+          onChange={(event, animationSpeed) => this.setState({ animationSpeed })}
+        />
+      </div>
     </div>;
   }
 }
