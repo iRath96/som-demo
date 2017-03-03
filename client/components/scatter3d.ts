@@ -166,18 +166,40 @@ export function scatter3D(
   };
 
   let dx: number = 0, dy: number = 0;
+
+  let lastMouseMove = new Date().getTime();
   canvas.onmousemove = ev => {
+    let t = new Date().getTime();
+    let deltaT = t - lastMouseMove;
+    lastMouseMove = t;
+
     if (down) {
-      dx = ev.clientX - sx;
-      dy = ev.clientY - sy;
-      scatterPlot.rotation.y += dx * 0.01;
-      camera.position.y += dy * 0.01;
-      sx += dx;
-      sy += dy;
+      let timeFactor = deltaT / 1000 * 60;
+
+      dx = (ev.clientX - sx) / timeFactor;
+      dy = (ev.clientY - sy) / timeFactor;
+
+      scatterPlot.rotation.y += dx * timeFactor * 0.01;
+      camera.position.y += dy * timeFactor * 0.01;
+
+      const softMax = (a: number, max: number) =>
+        max * (1 / (1 + Math.exp(-4 * a / max)) - 1/2)
+      ;
+
+      dx = softMax(dx * 0.5, 40);
+      dy = softMax(dy * 0.5, 40);
+
+      sx = ev.clientX;
+      sy = ev.clientY;
     }
   }
 
-  function animate(t: number) {
+  let lastT: number = new Date().getTime();
+  function animate() {
+    let t = new Date().getTime();
+    let deltaT = t - lastT;
+    lastT = t;
+
     if (ref.needsResize) {
       resize();
       
@@ -194,10 +216,12 @@ export function scatter3D(
       ref.needsRender = false;
 
       if (!down) {
-        dx *= 0.99;
-        dy *= 0.95;
-        scatterPlot.rotation.y += dx * 0.01;
-        camera.position.y += dy * 0.01;
+        let timeFactor = deltaT / 1000 * 60;
+
+        dx *= Math.pow(0.99, timeFactor);
+        dy *= Math.pow(0.95, timeFactor);
+        scatterPlot.rotation.y += dx * 0.01 * timeFactor;
+        camera.position.y += dy * 0.01 * timeFactor;
       }
 
       [ ...weightsToVectors ].forEach(([ weight, tvs ]) => {
@@ -219,7 +243,7 @@ export function scatter3D(
     window.requestAnimationFrame(animate);
   }
 
-  animate(new Date().getTime());
+  animate();
 
   return ref;
 }
