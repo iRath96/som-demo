@@ -1,12 +1,13 @@
 body {
   font-family: "Roboto", sans-serif;
   overflow: hidden;
+  background-color: #eee;
 }
 
 :local .main-view {
   position: absolute;
   z-index: 90;
-  
+
   top: 0;
   bottom: 0;
   left: 0;
@@ -29,6 +30,8 @@ body {
 :local .sidebar {
   position: absolute;
   z-index: 200;
+
+  background-color: white;
 
   top: 0;
   bottom: 0;

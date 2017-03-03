@@ -161,14 +161,14 @@ export function scatter3D(
     sy = ev.clientY;
   };
 
-  canvas.onmouseup = () => {
+  window.onmouseup = () => {
     down = false;
   };
 
   let dx: number = 0, dy: number = 0;
 
   let lastMouseMove = new Date().getTime();
-  canvas.onmousemove = ev => {
+  window.onmousemove = ev => {
     let t = new Date().getTime();
     let deltaT = t - lastMouseMove;
     lastMouseMove = t;

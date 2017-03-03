@@ -120,7 +120,7 @@ export default class App extends React.Component<void, IState> {
 
     for (let x = 0; x < 16; ++x)
       for (let y = 0; y < 16; ++y) {
-        let [ wx, wy, wz ] = pca.recover([ (x + 0.5) / 24, (y + 0.5) / 24 ]);
+        let [ wx, wy, wz ] = pca.recover([ (x + 0.5) / 16, (y + 0.5) / 16 ]);
         this.neurons.push(new Neuron(
           new Vector2D(x, y),
           new Vector3D(
@@ -137,10 +137,15 @@ export default class App extends React.Component<void, IState> {
     if (this.isAnimating)
       return;
     
+    let animationCounter = 0;
     this.setState({
       animationInterval: setInterval(() => {
-        this.iterate(this.state.animationSpeed < 1 ? 1 : this.state.animationSpeed);
-      }, 1000 / 30 / (this.state.animationSpeed < 1 ? this.state.animationSpeed : 1)) as any
+        animationCounter += this.state.animationSpeed;
+
+        let iterationCount = Math.floor(animationCounter);
+        this.iterate(iterationCount);
+        animationCounter -= iterationCount;
+      }, 1000 / 30) as any
     })
   }
 
@@ -157,21 +162,24 @@ export default class App extends React.Component<void, IState> {
     
     for (let i = 0; i < count; ++i) {
       let input = this.dataset[Math.floor(Math.random() * this.dataset.length)];
-      let bmu = this.neurons.reduce((bmu, neuron) =>
-        bmu.weights.euclideanDistance(input) <= neuron.weights.euclideanDistance(input)
-        ? bmu
-        : neuron
-      );
+      let bmu = this.neurons.reduce((bmu, neuron) => {
+        let dist = neuron.weights.euclideanDistance(input);
+
+        if (dist < bmu.dist) {
+          bmu.neuron = neuron;
+          bmu.dist = dist;
+        }
+
+        return bmu;
+      }, { neuron: this.neurons[0], dist: Infinity }).neuron!;
 
       this.neurons.forEach(neuron => {
         let bmuDistance = bmu.position.euclideanDistance(neuron.position);
 
-        let df = Math.exp(
-          -bmuDistance * bmuDistance /
-          (2 * this.state.neighborSize * this.state.neighborSize)
-        );
+        let exponent = -bmuDistance * bmuDistance / (2 * neighborSize * neighborSize);
+        let df = exponent < -4 ? 0 : Math.exp(exponent);
 
-        let lf = 1.0 - this.state.learningFactor * df;
+        let lf = 1.0 - learningFactor * df;
         neuron.weights.scalarMultiply(lf);
         neuron.weights.add(input, 1.0 - lf);
       });
