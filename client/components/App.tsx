@@ -4,6 +4,7 @@ import IconButton from "material-ui/IconButton";
 import Slider from "material-ui/Slider";
 import { Tabs, Tab } from "material-ui/Tabs";
 import FontIcon from "material-ui/FontIcon";
+import LinearProgress from "material-ui/LinearProgress";
 
 import ScatterPlot from "./ScatterPlot";
 import GridPlot from "./GridPlot";
@@ -27,6 +28,113 @@ class LogSlider extends React.Component<{
       onChange={(event, value) => onChange(event, Math.pow(10, value))}
       {...props}
     />;
+  }
+}
+
+class TrainTab extends React.Component<{
+  iterationIndex: number;
+  iterationTotal: number;
+
+  learningFactor: number;
+  neighborSize: number;
+  isTraining: boolean;
+
+  animationSpeed: number;
+  setAnimationSpeed(value: number): void;
+
+  startTraining(): void;
+  endTraining(): void;
+  iterateSingle(): void;
+
+  reset(): void;
+}, void> {
+  protected renderProgress() {
+    let percentCompleted = Math.round(this.props.iterationIndex * 100 / this.props.iterationTotal);
+    
+    return <div className="progress">
+      <LinearProgress
+        mode="determinate"
+        value={percentCompleted}
+      />
+      <div style={{
+        marginTop: 5,
+        textAlign: "center"
+      }}>
+        #{this.props.iterationIndex}
+        <span style={{
+          paddingLeft: 5,
+          opacity: 0.5
+        }}>
+          ({percentCompleted} %)
+        </span>
+      </div>
+    </div>;
+  }
+
+  protected renderControls() {
+    let toggleTraining = this.props.isTraining ? this.props.endTraining : this.props.startTraining;
+    
+    return <div className="controls">
+      <IconButton
+        iconClassName="material-icons"
+        tooltip={this.props.isTraining ? "Stop training" : "Start training"}
+        onClick={toggleTraining}
+      >
+        {this.props.isTraining ? "pause" : "play_arrow"}
+      </IconButton>
+      <IconButton
+        iconClassName="material-icons"
+        tooltip="One iteration"
+        onClick={this.props.iterateSingle}
+      >
+        skip_next
+      </IconButton>
+      <IconButton
+        iconClassName="material-icons"
+        tooltip="Reset"
+        onClick={this.props.reset}
+      >
+        replay
+      </IconButton>
+    </div>;
+  }
+
+  protected renderSpeedControl() {
+    return <div className="speed-control">
+      <LogSlider
+        step={1}
+        min={-1}
+        max={3}
+        value={this.props.animationSpeed}
+        sliderStyle={{
+          margin: 0
+        }}
+        onChange={(event, animationSpeed) =>
+          this.props.setAnimationSpeed(animationSpeed)
+        }
+      />
+      <b>Speed:</b> {this.props.animationSpeed}&times;
+    </div>;
+  }
+
+  protected renderStatus() {
+    return <div className="status">
+      <b>LF:</b> {this.props.learningFactor.toFixed(5)}<br />
+      <b>NS:</b> {this.props.neighborSize.toFixed(5)}
+    </div>;
+  }
+
+  render() {
+    return <div className={style["train-tab"]}>
+      {this.renderControls()}
+      {this.renderSpeedControl()}
+
+      {this.renderProgress()}
+
+      <hr />
+
+      {this.renderStatus()}
+    </div>;
   }
 }
 
@@ -322,39 +430,23 @@ export default class App extends React.Component<void, IState> {
             
           </Tab>
         </Tabs>
-        <b>LF:</b> {this.state.learningFactor.toFixed(5)}, <b>NS:</b> {this.state.neighborSize.toFixed(5)}
-        <br />
-        <IconButton
-          iconClassName="material-icons"
-          tooltip={this.isAnimating ? "Stop animation" : "Start animation"}
-          onClick={(this.isAnimating ? this.stopAnimating : this.startAnimating).bind(this)}
-        >
-          {this.isAnimating ? "pause" : "play_arrow"}
-        </IconButton>
-        <IconButton
-          iconClassName="material-icons"
-          tooltip="Reset"
-          onClick={() => this.reset()}
-        >
-          replay
-        </IconButton>
-        <IconButton
-          iconClassName="material-icons"
-          tooltip="One iteration"
-          onClick={() => this.iterateAnimated()}
-        >
-          skip_next
-        </IconButton>
-        {this.state.animationSpeed}
-        <div style={{ padding: "4px 20px" }}>
-        <LogSlider
-            step={1}
-            min={-1}
-            max={3}
-            value={this.state.animationSpeed}
-            onChange={(event, animationSpeed) => this.setState({ animationSpeed })}
-          />
-        </div>
+        <TrainTab
+          iterationIndex={23}
+          iterationTotal={100}
+
+          learningFactor={this.state.learningFactor}
+          neighborSize={this.state.neighborSize}
+          isTraining={this.isAnimating}
+
+          animationSpeed={this.state.animationSpeed}
+          setAnimationSpeed={animationSpeed => this.setState({ animationSpeed })}
+
+          startTraining={() => this.startAnimating()}
+          endTraining={() => this.stopAnimating()}
+          iterateSingle={() => this.iterateAnimated()}
+
+          reset={() => this.reset()}
+        />
       </div>
     </div>;
   }
