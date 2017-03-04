@@ -38,6 +38,7 @@ class TrainTab extends React.Component<{
   learningFactor: number;
   neighborSize: number;
   isTraining: boolean;
+  hasFinishedTraining: boolean;
 
   animationSpeed: number;
   setAnimationSpeed(value: number): void;
@@ -79,6 +80,7 @@ class TrainTab extends React.Component<{
         iconClassName="material-icons"
         tooltip={this.props.isTraining ? "Stop training" : "Start training"}
         onClick={toggleTraining}
+        disabled={this.props.hasFinishedTraining}
       >
         {this.props.isTraining ? "pause" : "play_arrow"}
       </IconButton>
@@ -86,6 +88,7 @@ class TrainTab extends React.Component<{
         iconClassName="material-icons"
         tooltip="One iteration"
         onClick={this.props.iterateSingle}
+        disabled={this.props.hasFinishedTraining}
       >
         skip_next
       </IconButton>
@@ -145,21 +148,31 @@ interface IState {
   learningFactor: number;
   neighborSize: number;
   animationSpeed: number;
+  iterationCounter: number;
 }
 
 export default class App extends React.Component<void, IState> {
   dataset: Vector3D[] = [];
   neurons: Neuron<Vector2D, Vector3D>[] = [];
   
+  startLearningRate: number = 0.1;
+  endLearningRate: number = 0.005;
+  
+  startNeighborSize: number = 24 / 2;
+  endNeighborSize: number = 1 / 2;
+
+  trainingIterations: number = 50000;
+
   constructor() {
     super();
 
     this.state = {
       animationInterval: null,
       stepAnimationInterval: null,
+      iterationCounter: 0,
 
-      learningFactor: 0.1,
-      neighborSize: 24 / 2 * 0.5,
+      learningFactor: this.startLearningRate,
+      neighborSize: this.startNeighborSize,
       animationSpeed: 1
     };
 
@@ -241,13 +254,22 @@ export default class App extends React.Component<void, IState> {
       }
   }
 
+  protected get isTrainingFinished() {
+    return this.state.iterationCounter >= this.trainingIterations;
+  }
+
   protected startAnimating() {
-    if (this.isAnimating)
+    if (this.isAnimating || this.isTrainingFinished)
       return;
     
     let animationCounter = 0;
     this.setState({
       animationInterval: setInterval(() => {
+        if (this.isTrainingFinished) {
+          this.stopAnimating();
+          return;
+        }
+
         animationCounter += this.state.animationSpeed;
 
         let iterationCount = Math.floor(animationCounter);
@@ -265,8 +287,15 @@ export default class App extends React.Component<void, IState> {
   }
 
   protected iterate(count: number = 1) {
+    count = Math.min(count, this.trainingIterations - this.state.iterationCounter);
+
+    const expDecay = (min: number, max: number, v: number) =>
+      max * Math.pow(min / max, v)
+    ;
+
     let learningFactor = this.state.learningFactor;
     let neighborSize = this.state.neighborSize;
+    let iterationCounter = this.state.iterationCounter;
     
     for (let i = 0; i < count; ++i) {
       let input = this.dataset[Math.floor(Math.random() * this.dataset.length)];
@@ -292,13 +321,17 @@ export default class App extends React.Component<void, IState> {
         neuron.weights.add(input, 1.0 - lf);
       });
 
-      learningFactor *= 0.99995;
-      neighborSize *= 0.99995;
+      ++iterationCounter;
+
+      let v = iterationCounter / this.trainingIterations;
+      learningFactor = expDecay(this.endLearningRate, this.startLearningRate, v);
+      neighborSize = expDecay(this.endNeighborSize, this.startNeighborSize, v);
     }
 
     this.setState({
       learningFactor,
-      neighborSize
+      neighborSize,
+      iterationCounter
     });
   }
 
@@ -365,8 +398,9 @@ export default class App extends React.Component<void, IState> {
     this.stopAnimating();
 
     this.setState({
-      learningFactor: 0.1,
-      neighborSize: 24 / 2
+      learningFactor: this.startLearningRate,
+      neighborSize: this.startNeighborSize,
+      iterationCounter: 0
     });
 
     this.neurons.forEach(neuron => {
@@ -431,12 +465,13 @@ export default class App extends React.Component<void, IState> {
           </Tab>
         </Tabs>
         <TrainTab
-          iterationIndex={23}
-          iterationTotal={100}
+          iterationIndex={this.state.iterationCounter}
+          iterationTotal={this.trainingIterations}
 
           learningFactor={this.state.learningFactor}
           neighborSize={this.state.neighborSize}
           isTraining={this.isAnimating}
+          hasFinishedTraining={this.isTrainingFinished}
 
           animationSpeed={this.state.animationSpeed}
           setAnimationSpeed={animationSpeed => this.setState({ animationSpeed })}
