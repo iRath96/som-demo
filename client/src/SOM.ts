@@ -33,11 +33,12 @@ export default class SOMController {
   constructor() {
     this.model = new Model(12, 12, new SquareLattice());
     this.initializer = new PCAInitializer();
-    this.dataset = new Dataset([
-      new ClusterDatasetSource(1000, [ 0.5, 0.5, 0.5 ], 0.02),
-      new ClusterDatasetSource(1000, [ 0.1, 0.8, 0.5 ], 0.02),
-      new ClusterDatasetSource(1000, [ 0.1, 0.1, 0.5 ], 0.02)
-    ]);
+
+    let sources: ClusterDatasetSource[] = [];
+    for (let i = 0; i < 6; ++i)
+      sources.push(new ClusterDatasetSource(1000, [0,0,0].map(Math.random), 0.02));
+    
+    this.dataset = new Dataset(sources);
     
     this.trainer = new Trainer(this.model, new BootstrapDatasetSampler(this.dataset));
     this.trainer.learningRateBounds = { start: 0.1, end: 0.005 };
