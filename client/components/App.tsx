@@ -9,9 +9,7 @@ import LinearProgress from "material-ui/LinearProgress";
 import ScatterPlot from "./ScatterPlot";
 import GridPlot from "./GridPlot";
 
-import PCA from "src/PCA";
-import Neuron from "src/Neuron";
-import { Vector3D, Vector2D } from "src/Vector";
+import SOMController from "../src/SOM";
 
 const style = require("./App.scss");
 
@@ -144,128 +142,32 @@ class TrainTab extends React.Component<{
 interface IState {
   animationInterval: number | null;
   stepAnimationInterval: number | null;
-
-  learningFactor: number;
-  neighborSize: number;
   animationSpeed: number;
-  iterationCounter: number;
 }
 
 export default class App extends React.Component<void, IState> {
-  dataset: Vector3D[] = [];
-  neurons: Neuron<Vector2D, Vector3D>[] = [];
+  som: SOMController = new SOMController();
   
-  startLearningRate: number = 0.1;
-  endLearningRate: number = 0.005;
-  
-  startNeighborSize: number = 24 / 2;
-  endNeighborSize: number = 1 / 2;
-
-  trainingIterations: number = 50000;
-
   constructor() {
     super();
 
     this.state = {
       animationInterval: null,
       stepAnimationInterval: null,
-      iterationCounter: 0,
-
-      learningFactor: this.startLearningRate,
-      neighborSize: this.startNeighborSize,
       animationSpeed: 1
     };
 
-    const rnd = () => {
-      let u1 = 1.0 - Math.random();
-      let u2 = 1.0 - Math.random();
-      
-      return Math.sqrt(-2.0 * Math.log(u1)) * Math.sin(2.0 * Math.PI * u2);
-    };
-
-    /*
-    let centers = [
-      [ 0, 0, 0 ],
-      [ 0, 1, 0 ],
-      [ 0, 0, 1 ],
-      [ 1, 0, 0 ],
-      [ 0.2, 0.5, 0.7 ],
-      [ 0.7, 0.1, 0.8 ],
-      [ 0.5, 0.6, 0.4 ]
-    ];*/
-
-    let centers = [];
-    for (let i = 0; i < 6; ++i)
-      centers.push([
-        Math.random(),
-        Math.random(),
-        Math.random()
-      ]);
-
-    for (let i = 0; i < 10000; ++i) {
-      /*if (0 < 1) {
-        let a = rnd();
-        let b = rnd();
-
-        this.dataset.push(new Vector3D(
-          a * 0.5 + b * 0.2,
-          a * 0.2 + b,
-          b * 0.8
-        ));
-      } else */if (0 > 1) {
-        let a = rnd() * 0.4;
-        let b = rnd() * 0.4;
-
-        this.dataset.push(new Vector3D(
-          Math.sin(1.5 * a) + rnd() * 0.02 + 0.5,
-          (Math.cos(1.5 * a) + Math.sin(2.5 * b)) * 0.5 + rnd() * 0.02 + 0.2,
-          Math.cos(2.5 * b) + rnd() * 0.02 + 0.2 
-        ));
-      } else {
-        let [ cx, cy, cz ] = centers[Math.floor(Math.random() * centers.length)];
-
-        this.dataset.push(new Vector3D(
-          rnd() * 0.01 + cx,
-          rnd() * 0.01 + cy,
-          rnd() * 0.01 + cz
-        ));
-      }
-    }
-
-    let pca = new PCA(
-      this.dataset
-        .filter((v, index) => index % 10 === 0)
-        .map(vector => vector.toArray()),
-      2
-    );
-
-    for (let x = 0; x < 16; ++x)
-      for (let y = 0; y < 16; ++y) {
-        let [ wx, wy, wz ] = pca.recover([ (x + 0.5) / 16, (y + 0.5) / 16 ]);
-        this.neurons.push(new Neuron(
-          new Vector2D(x, y),
-          new Vector3D(
-            wx, wy, wz
-            // Math.random(),
-            // Math.random(),
-            // Math.random()
-          )
-        ));
-      }
-  }
-
-  protected get isTrainingFinished() {
-    return this.state.iterationCounter >= this.trainingIterations;
+    this.som.initialize();
   }
 
   protected startAnimating() {
-    if (this.isAnimating || this.isTrainingFinished)
+    if (this.isAnimating || this.som.trainer.hasFinished)
       return;
     
     let animationCounter = 0;
     this.setState({
       animationInterval: setInterval(() => {
-        if (this.isTrainingFinished) {
+        if (this.som.trainer.hasFinished) {
           this.stopAnimating();
           return;
         }
@@ -273,7 +175,10 @@ export default class App extends React.Component<void, IState> {
         animationCounter += this.state.animationSpeed;
 
         let iterationCount = Math.floor(animationCounter);
-        this.iterate(iterationCount);
+        
+        this.som.iterate(iterationCount);
+        this.forceUpdate();
+
         animationCounter -= iterationCount;
       }, 1000 / 30) as any
     })
@@ -286,83 +191,53 @@ export default class App extends React.Component<void, IState> {
     });
   }
 
-  protected iterate(count: number = 1) {
-    count = Math.min(count, this.trainingIterations - this.state.iterationCounter);
-
-    const expDecay = (min: number, max: number, v: number) =>
-      max * Math.pow(min / max, v)
-    ;
-
-    let learningFactor = this.state.learningFactor;
-    let neighborSize = this.state.neighborSize;
-    let iterationCounter = this.state.iterationCounter;
+  protected iterateSingle() {
+    if (this.state.stepAnimationInterval !== null)
+      // already animating
+      return;
     
-    for (let i = 0; i < count; ++i) {
-      let input = this.dataset[Math.floor(Math.random() * this.dataset.length)];
-      let bmu = this.neurons.reduce((bmu, neuron) => {
-        let dist = neuron.weights.euclideanDistance(input);
+    let targetWeightMatrix = this.som.model.weightMatrix.cloneWithoutData();
+    this.som.trainer.iterate(1, targetWeightMatrix);
 
-        if (dist < bmu.dist) {
-          bmu.neuron = neuron;
-          bmu.dist = dist;
-        }
+    // perform animation
 
-        return bmu;
-      }, { neuron: this.neurons[0], dist: Infinity }).neuron!;
-
-      this.neurons.forEach(neuron => {
-        let bmuDistance = bmu.position.euclideanDistance(neuron.position);
-
-        let exponent = -bmuDistance * bmuDistance / (2 * neighborSize * neighborSize);
-        let df = exponent < -4 ? 0 : Math.exp(exponent);
-
-        let lf = 1.0 - learningFactor * df;
-        neuron.weights.scalarMultiply(lf);
-        neuron.weights.add(input, 1.0 - lf);
-      });
-
-      ++iterationCounter;
-
-      let v = iterationCounter / this.trainingIterations;
-      learningFactor = expDecay(this.endLearningRate, this.startLearningRate, v);
-      neighborSize = expDecay(this.endNeighborSize, this.startNeighborSize, v);
-    }
+    let t = 0;
+    let prevE = 0;
 
     this.setState({
-      learningFactor,
-      neighborSize,
-      iterationCounter
+      stepAnimationInterval: setInterval(() => {
+        // calculate interpolation parameters
+        let e = t < 0.5 ? 4 * Math.pow(t, 3) : 4 * Math.pow(t - 1, 3) + 1;
+        let aFactor = (1 - e) / (1 - prevE);
+        let bFactor = (e - prevE) / (1 - prevE);
+        prevE = e;
+
+        // update neuron weights
+        for (let neuronIndex = 0; neuronIndex < this.som.model.neuronCount; ++neuronIndex) {
+          let target = targetWeightMatrix.getRow(neuronIndex);
+          target.forEach((b, dim) => {
+            let a = this.som.model.weightMatrix.get(neuronIndex, dim);
+            this.som.model.weightMatrix.set(neuronIndex, dim, a * aFactor + b * bFactor);
+          });
+        };
+
+        if (t >= 1) {
+          clearInterval(this.state.stepAnimationInterval as any);
+          this.setState({
+            stepAnimationInterval: null
+          });
+
+          return;
+        } else
+          this.forceUpdate();
+
+        t += 0.05; // @todo Magic constant
+      }, 1000 / 30) as any
     });
   }
 
+/*
   protected iterateAnimated() {
-    if (this.state.stepAnimationInterval !== null)
-      return;
-    
-    let input = this.dataset[Math.floor(Math.random() * this.dataset.length)];
-    let bmu = this.neurons.reduce((bmu, neuron) =>
-      bmu.weights.euclideanDistance(input) <= neuron.weights.euclideanDistance(input)
-      ? bmu
-      : neuron
-    );
-
-    let positions = new Map<Neuron<Vector2D, Vector3D>, [ Vector3D, Vector3D ]>();
-
-    this.neurons.forEach(neuron => {
-      let bmuDistance = bmu.position.euclideanDistance(neuron.position);
-
-      let df = Math.exp(
-        -bmuDistance * bmuDistance /
-        (2 * this.state.neighborSize * this.state.neighborSize)
-      );
-
-      let lf = 1.0 - this.state.learningFactor * df;
-      let newPos = neuron.weights.clone();
-      newPos.scalarMultiply(lf);
-      newPos.add(input, 1.0 - lf);
-      positions.set(neuron, [ neuron.weights.clone(), newPos ]);
-    });
-
     let t = 0;
     this.setState({
       stepAnimationInterval: setInterval(() => {
@@ -389,6 +264,7 @@ export default class App extends React.Component<void, IState> {
       }, 1000 / 30) as any
     });
   }
+*/
 
   get isAnimating() {
     return this.state.animationInterval !== null;
@@ -397,25 +273,16 @@ export default class App extends React.Component<void, IState> {
   protected reset() {
     this.stopAnimating();
 
-    this.setState({
-      learningFactor: this.startLearningRate,
-      neighborSize: this.startNeighborSize,
-      iterationCounter: 0
-    });
-
-    this.neurons.forEach(neuron => {
-      neuron.weights.x = Math.random();
-      neuron.weights.y = Math.random();
-      neuron.weights.z = Math.random();
-    });
+    this.som.initialize();
+    this.forceUpdate();
   }
 
   render() {
     return <div>
       <div className={style["main-view"]}>
         <ScatterPlot
-          dataset={this.dataset}
-          neurons={this.neurons}
+          dataset={this.som.dataset}
+          model={this.som.model}
           animating={
             this.state.animationInterval !== null ||
             this.state.stepAnimationInterval !== null
@@ -424,11 +291,11 @@ export default class App extends React.Component<void, IState> {
       </div>
       <div className={style["grid-plot"]}>
         <GridPlot
-          neurons={this.neurons.concat([])}
+          model={this.som.model}
           tileWidth={8}
           tileHeight={8}
-          width={16}
-          height={16}
+          width={this.som.model.width}
+          height={this.som.model.height}
         />
       </div>
       <div className={style["sidebar"]}>
@@ -465,20 +332,20 @@ export default class App extends React.Component<void, IState> {
           </Tab>
         </Tabs>
         <TrainTab
-          iterationIndex={this.state.iterationCounter}
-          iterationTotal={this.trainingIterations}
+          iterationIndex={this.som.trainer.currentIteration}
+          iterationTotal={this.som.trainer.maxIteration}
 
-          learningFactor={this.state.learningFactor}
-          neighborSize={this.state.neighborSize}
+          learningFactor={this.som.trainer.learningRate}
+          neighborSize={this.som.trainer.neighborSize}
           isTraining={this.isAnimating}
-          hasFinishedTraining={this.isTrainingFinished}
+          hasFinishedTraining={this.som.trainer.hasFinished}
 
           animationSpeed={this.state.animationSpeed}
           setAnimationSpeed={animationSpeed => this.setState({ animationSpeed })}
 
           startTraining={() => this.startAnimating()}
           endTraining={() => this.stopAnimating()}
-          iterateSingle={() => this.iterateAnimated()}
+          iterateSingle={() => this.iterateSingle()}
 
           reset={() => this.reset()}
         />

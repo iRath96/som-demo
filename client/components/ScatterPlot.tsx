@@ -1,17 +1,14 @@
 import * as React from "react";
 import * as THREE from "three";
 
-import Neuron from "src/Neuron";
-import { Vector3D } from "src/Vector";
+import Dataset from "../../som/Dataset";
+import Model from "../../som/Model";
 
 
 export function scatter3D(
   canvas: HTMLCanvasElement,
-  dataset: number[][],
-  neurons: {
-    weights: Vector3D,
-    position: number[]
-  }[]
+  dataset: Dataset,
+  model: Model
 ) {
   var ref = {
     animating: false,
@@ -128,10 +125,10 @@ export function scatter3D(
       size: 0.01
     });
     
-    var pointCount = dataset.length;
+    var pointCount = dataset.sampleCount;
     var pointGeo = new THREE.Geometry();
     for (var i = 0; i < pointCount; ++i) {
-      let [ x, y, z ] = dataset[i];
+      let [ x, y, z ] = dataset.getSample(i);
       pointGeo.vertices.push(new THREE.Vector3(x, y, z));
     }
 
@@ -143,41 +140,35 @@ export function scatter3D(
     scatterPlot.add(points);
   }
 
-  var weightsToVectors = new Map<Vector3D, Set<THREE.Vector3>>();
+  var weightsToVectors = new Map<number, Set<THREE.Vector3>>();
   var lineGeo = new THREE.Geometry();
 
   {
-    neurons.forEach(a => {
-      if (!weightsToVectors.has(a.weights))
-        weightsToVectors.set(a.weights, new Set<THREE.Vector3>());
+    for (let i = 0; i < model.neuronCount; ++i) {
+      if (!weightsToVectors.has(i))
+        weightsToVectors.set(i, new Set<THREE.Vector3>());
       
-      neurons.forEach(b => {
-        if (!weightsToVectors.has(b.weights))
-          weightsToVectors.set(b.weights, new Set<THREE.Vector3>());
+      for (let j = 0; j < model.neuronCount; ++j) {
+        if (!weightsToVectors.has(j))
+          weightsToVectors.set(j, new Set<THREE.Vector3>());
 
-        let valid = a.position
-          .map((v, i) => b.position[i] - v)
-          .reduce((valid: boolean | null, v) => {
-            if (valid === false) return false;
-            if (v === 0) return valid;
-            if (v !== 1) return false;
-            return valid === null;
-          }, null);
-        
-        if (valid) {
-          let aWT = new THREE.Vector3(a.weights.x, a.weights.y, a.weights.z);
-          let bWT = new THREE.Vector3(b.weights.x, b.weights.y, b.weights.z);
+        if (model.distanceMatrix.get(i, j) <= 1) {
+          let iW = model.weightMatrix.getRow(i);
+          let jW = model.weightMatrix.getRow(j);
 
-          weightsToVectors.get(a.weights)!.add(aWT);
-          weightsToVectors.get(b.weights)!.add(bWT);
+          let iWT = new THREE.Vector3(iW[0], iW[1], iW[2]);
+          let jWT = new THREE.Vector3(jW[0], jW[1], jW[2]);
+
+          weightsToVectors.get(i)!.add(iWT);
+          weightsToVectors.get(j)!.add(jWT);
 
           lineGeo.vertices.push(
-            aWT,
-            bWT
+            iWT,
+            jWT
           );
         }
-      });
-    });
+      };
+    };
 
     var lineMat = new THREE.LineBasicMaterial({
       color: 0xff0000,
@@ -269,11 +260,12 @@ export function scatter3D(
         camera.position.y += dy * 0.01 * timeFactor;
       }
 
-      [ ...weightsToVectors ].forEach(([ weight, tvs ]) => {
+      [ ...weightsToVectors ].forEach(([ neuronIndex, tvs ]) => {
+        let weights = model.weightMatrix.getRow(neuronIndex);
         tvs.forEach(tv => {
-          tv.x = weight.x - 0.5;
-          tv.y = weight.y - 0.5;
-          tv.z = weight.z - 0.5;
+          tv.x = weights[0] - 0.5;
+          tv.y = weights[1] - 0.5;
+          tv.z = weights[2] - 0.5;
         });
       });
 
@@ -294,8 +286,8 @@ export function scatter3D(
 }
 
 export interface IProps {
-  dataset: Vector3D[];
-  neurons: Neuron<any, Vector3D>[];
+  dataset: Dataset;
+  model: Model;
   animating: boolean;
 }
 
@@ -306,11 +298,8 @@ export default class ScatterPlot extends React.Component<IProps, void> {
   componentDidMount() {
     this.ref = scatter3D(
       this.refs["canvas"] as any,
-      this.props.dataset.map(v => v.toArray()),
-      this.props.neurons.map(n => ({
-        weights: n.weights,
-        position: n.position.toArray()
-      }))
+      this.props.dataset,
+      this.props.model
     );
 
     let resizeTimeout: any;
