@@ -192,8 +192,48 @@ export default class App extends React.Component<void, IState> {
   }
 
   protected iterateSingle() {
-    this.som.iterate(1);
-    this.forceUpdate();
+    if (this.state.stepAnimationInterval !== null)
+      // already animating
+      return;
+    
+    let targetWeightMatrix = this.som.model.weightMatrix.cloneWithoutData();
+    this.som.trainer.iterate(1, targetWeightMatrix);
+
+    // perform animation
+
+    let t = 0;
+    let prevE = 0;
+
+    this.setState({
+      stepAnimationInterval: setInterval(() => {
+        // calculate interpolation parameters
+        let e = t < 0.5 ? 4 * Math.pow(t, 3) : 4 * Math.pow(t - 1, 3) + 1;
+        let aFactor = (1 - e) / (1 - prevE);
+        let bFactor = (e - prevE) / (1 - prevE);
+        prevE = e;
+
+        // update neuron weights
+        for (let neuronIndex = 0; neuronIndex < this.som.model.neuronCount; ++neuronIndex) {
+          let target = targetWeightMatrix.getRow(neuronIndex);
+          target.forEach((b, dim) => {
+            let a = this.som.model.weightMatrix.get(neuronIndex, dim);
+            this.som.model.weightMatrix.set(neuronIndex, dim, a * aFactor + b * bFactor);
+          });
+        };
+
+        if (t >= 1) {
+          clearInterval(this.state.stepAnimationInterval as any);
+          this.setState({
+            stepAnimationInterval: null
+          });
+
+          return;
+        } else
+          this.forceUpdate();
+
+        t += 0.05; // @todo Magic constant
+      }, 1000 / 30) as any
+    });
   }
 
 /*

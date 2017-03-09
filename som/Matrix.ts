@@ -5,8 +5,6 @@ export interface FloatArrayConstructor<T> {
 }
 
 export default class Matrix<T extends Float64Array | Float32Array> {
-  /** Buffer for the ArrayBufferView. */
-  readonly buffer: ArrayBuffer;
   /** Contains all elements of the matrix. */
   readonly data: T;
   
@@ -17,8 +15,9 @@ export default class Matrix<T extends Float64Array | Float32Array> {
     readonly rows: number,
     /** The horizontal dimension of the matrix. */
     readonly columns: number,
+    /** Buffer for the ArrayBufferView. */
+    readonly buffer: ArrayBuffer = new ArrayBuffer(arrayConstructor.BYTES_PER_ELEMENT * columns * rows)
   ) {
-    this.buffer = new ArrayBuffer(arrayConstructor.BYTES_PER_ELEMENT * columns * rows);
     this.data = new arrayConstructor(this.buffer);
   }
 
@@ -35,5 +34,24 @@ export default class Matrix<T extends Float64Array | Float32Array> {
   /** Returns a row vector from the matrix. */
   getRow(row: number): T {
     return this.data.slice(row * this.columns, (row + 1) * this.columns) as T;
+  }
+
+  /** Returns a new matrix with identical dimensions and elements. */
+  clone(): Matrix<T> {
+    return new Matrix(
+      this.arrayConstructor,
+      this.rows,
+      this.columns,
+      this.buffer.slice(0)
+    );
+  }
+
+  /** Returns a new uninitialized matrix with identical dimensions. */
+  cloneWithoutData(): Matrix<T> {
+    return new Matrix(
+      this.arrayConstructor,
+      this.rows,
+      this.columns
+    );
   }
 }

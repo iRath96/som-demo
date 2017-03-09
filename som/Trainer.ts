@@ -1,5 +1,7 @@
 import Model from "./Model";
+import Matrix from "./Matrix";
 import DatasetSampler from "./DatasetSampler";
+
 
 /** Represents the bounds for a decaying value (one that changes over time). */
 export interface DecayingValue {
@@ -43,7 +45,7 @@ export default class Trainer {
     return this.currentIteration / this.maxIteration;
   }
   
-  iterate(count: number) {
+  iterate(count: number, targetWeightMatrix: Matrix<any> = this.model.weightMatrix) {
     count = Math.min(count, this.maxIteration - this.currentIteration);
     
     let input: number[];
@@ -65,7 +67,7 @@ export default class Trainer {
 
         let lf = 1.0 - learningRate * df;
         for (let dim = 0; dim < this.model.dataDimension; ++dim)
-          this.model.weightMatrix.set(i, dim,
+          targetWeightMatrix.set(i, dim,
             // blend between previous value and input vector
             this.model.weightMatrix.get(i, dim) * lf + input[dim] * (1 - lf)
           );
