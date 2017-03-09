@@ -22,4 +22,11 @@ export default class Dataset {
 
     throw new Error("Sample index out of bounds");
   }
+
+  getAllSamples() {
+    let matrix = [];
+    for (let i = 0; i < this.sampleCount; ++i)
+      matrix[i] = this.getSample(i);
+    return matrix;
+  }
 }

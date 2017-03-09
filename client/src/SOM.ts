@@ -4,7 +4,7 @@ import Dataset from "../../som/Dataset";
 import { RandomDatasetSource, Distribution } from "../../som/DatasetSource";
 import { SquareLattice } from "../../som/Lattice";
 import { BootstrapDatasetSampler } from "../../som/DatasetSampler";
-import { Initializer, RandomInitializer } from "../../som/Initializer";
+import { Initializer, PCAInitializer } from "../../som/Initializer";
 
 
 class ClusterDatasetSource extends RandomDatasetSource {
@@ -32,7 +32,7 @@ export default class SOMController {
 
   constructor() {
     this.model = new Model(12, 12, new SquareLattice());
-    this.initializer = new RandomInitializer();
+    this.initializer = new PCAInitializer();
     this.dataset = new Dataset([
       new ClusterDatasetSource(1000, [ 0.5, 0.5, 0.5 ], 0.02),
       new ClusterDatasetSource(1000, [ 0.1, 0.8, 0.5 ], 0.02),
