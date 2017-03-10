@@ -7,10 +7,32 @@
   div.content {
     padding-left: 40px;
 
-    span.cluster-type {
+    span.title {
       font-size: .7em;
-      font-weight: bold;
-      text-transform: uppercase;
+
+      span.cluster-type {
+        font-weight: bold;
+        text-transform: uppercase;
+      }
+
+      input {
+        outline: none;
+        font: inherit;
+        border: none;
+        border-bottom: 1px solid #aaa;
+        width: 30px;
+
+        text-align: center;
+        margin: 0 2px;
+
+        /* Make this look like an ordinary text field */
+        -moz-appearance:textfield;
+
+        &::-webkit-outer-spin-button,
+        &::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+        }
+      }
     }
   }
 }

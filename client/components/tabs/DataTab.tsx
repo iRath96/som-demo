@@ -10,6 +10,7 @@ import Dataset from "som/Dataset";
 import { DatasetSource, ClusterDatasetSource } from "som/DatasetSource";
 
 import LogSlider from "../LogSlider";
+import NumberInput from "../NumberInput";
 
 const style = require("./DataTab.scss");
 
@@ -99,7 +100,19 @@ export default class DataTab extends React.Component<IProps, void> {
         }}
       />
       <div className="content">
-        <span className="cluster-type">Cluster</span>
+        <span className="title">
+          <span className="cluster-type">
+            Cluster
+          </span>
+          {" "}with
+          <NumberInput
+            value={source.sampleCount}
+            onChange={value => {
+              source.sampleCount = value;
+              this.props.onUpdate();
+            }}
+          /> datapoints
+        </span>
         <div>
           <span>
             &sigma;
