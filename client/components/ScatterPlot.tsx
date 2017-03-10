@@ -276,10 +276,16 @@ export function scatter3D(
       ref.needsRender = true;
     }
 
+    if (Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) {
+      // stop moving
+      dx = 0;
+      dy = 0;
+    }
+
     if (
       ref.needsRender ||
       down ||
-      Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1 ||
+      dx !== 0 || dy !== 0 ||
       ref.animating
     ) {
       ref.needsRender = false;
