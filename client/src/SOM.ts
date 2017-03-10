@@ -1,27 +1,11 @@
-import Model from "../../som/Model";
-import Trainer from "../../som/Trainer";
-import Dataset from "../../som/Dataset";
-import { RandomDatasetSource, Distribution } from "../../som/DatasetSource";
-import { SquareLattice } from "../../som/Lattice";
-import { BootstrapDatasetSampler } from "../../som/DatasetSampler";
-import { Initializer, PCAInitializer } from "../../som/Initializer";
+import Model from "som/Model";
+import Trainer from "som/Trainer";
+import Dataset from "som/Dataset";
+import { ClusterDatasetSource } from "som/DatasetSource";
+import { SquareLattice } from "som/Lattice";
+import { BootstrapDatasetSampler } from "som/DatasetSampler";
+import { Initializer, PCAInitializer } from "som/Initializer";
 
-
-class ClusterDatasetSource extends RandomDatasetSource {
-  constructor(
-    sampleCount: number,
-    public center: number[],
-    public stddev: number
-  ) {
-    super(sampleCount);
-  }
-
-  getSample(index: number) {
-    return this.center.map((v, i) =>
-      v + this.getRandomValue(index * this.center.length + i, Distribution.GAUSSIAN) * this.stddev
-    );
-  }
-}
 
 /** Controller for self-organizing maps. */
 export default class SOMController {

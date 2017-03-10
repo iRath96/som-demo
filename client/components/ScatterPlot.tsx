@@ -1,8 +1,8 @@
 import * as React from "react";
 import * as THREE from "three";
 
-import Dataset from "../../som/Dataset";
-import Model from "../../som/Model";
+import Dataset from "som/Dataset";
+import Model from "som/Model";
 
 
 export function scatter3D(
@@ -14,7 +14,10 @@ export function scatter3D(
     animating: false,
     needsRender: true,
     needsResize: false,
+    datasetRevision: 0
   };
+
+  let currentDatasetRevision = 0;
 
   var renderer = new THREE.WebGLRenderer({
     antialias: true,
@@ -119,26 +122,49 @@ export function scatter3D(
     scatterPlot.add(line);
   }
 
-  {
-    var mat = new THREE.ParticleBasicMaterial({
-      color: 0x222222,
-      size: 0.01
-    });
+  let updatePointGeo = (function () {
+    let pointGeo: THREE.Geometry, points: THREE.ParticleSystem;
     
-    var pointCount = dataset.sampleCount;
-    var pointGeo = new THREE.Geometry();
-    for (var i = 0; i < pointCount; ++i) {
-      let [ x, y, z ] = dataset.getSample(i);
-      pointGeo.vertices.push(new THREE.Vector3(x, y, z));
+    return function () {
+      let needsNewGeometry = !pointGeo || pointGeo.vertices.length !== dataset.sampleCount;
+
+      if (needsNewGeometry) {
+        // create new geometry
+
+        if (points)
+          scatterPlot.remove(points);
+        
+        var mat = new THREE.ParticleBasicMaterial({
+          color: 0x222222,
+          size: 0.01
+        });
+
+        pointGeo = new THREE.Geometry();
+
+        for (var i = 0; i < dataset.sampleCount; ++i) {
+          let [ x, y, z ] = dataset.getSample(i);
+          pointGeo.vertices.push(new THREE.Vector3(x, y, z));
+        }
+
+        points = new THREE.ParticleSystem(pointGeo, mat);
+        scatterPlot.add(points);
+      } else {
+        // update existing geometry
+        for (var i = 0; i < dataset.sampleCount; ++i) {
+          let vertex = pointGeo.vertices[i];
+          [ vertex.x, vertex.y, vertex.z ] = dataset.getSample(i);
+        }
+
+        pointGeo.verticesNeedUpdate = true;
+      }
+
+      pointGeo.applyMatrix(
+        new THREE.Matrix4().makeTranslation(-0.5, -0.5, -0.5)
+      );
     }
+  })();
 
-    pointGeo.applyMatrix(
-      new THREE.Matrix4().makeTranslation(-0.5, -0.5, -0.5)
-    );
-
-    var points = new THREE.ParticleSystem(pointGeo, mat);
-    scatterPlot.add(points);
-  }
+  updatePointGeo();
 
   var weightsToVectors = new Map<number, Set<THREE.Vector3>>();
   var lineGeo = new THREE.Geometry();
@@ -243,6 +269,13 @@ export function scatter3D(
       ref.needsRender = true;
     }
 
+    if (currentDatasetRevision !== ref.datasetRevision) {
+      currentDatasetRevision = ref.datasetRevision;
+      updatePointGeo();
+
+      ref.needsRender = true;
+    }
+
     if (
       ref.needsRender ||
       down ||
@@ -287,6 +320,8 @@ export function scatter3D(
 
 export interface IProps {
   dataset: Dataset;
+  datasetRevision: number;
+
   model: Model;
   animating: boolean;
 }
@@ -327,6 +362,7 @@ export default class ScatterPlot extends React.Component<IProps, void> {
   componentWillReceiveProps(props: IProps) {
     this.ref.animating = props.animating;
     this.ref.needsRender = true;
+    this.ref.datasetRevision = props.datasetRevision;
   }
 
   shouldComponentUpdate() {

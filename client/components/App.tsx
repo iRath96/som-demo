@@ -1,7 +1,6 @@
 import * as React from "react";
 
 import IconButton from "material-ui/IconButton";
-import Slider from "material-ui/Slider";
 import { Tabs, Tab } from "material-ui/Tabs";
 import FontIcon from "material-ui/FontIcon";
 import LinearProgress from "material-ui/LinearProgress";
@@ -9,25 +8,15 @@ import LinearProgress from "material-ui/LinearProgress";
 import ScatterPlot from "./ScatterPlot";
 import GridPlot from "./GridPlot";
 
-import SOMController from "../src/SOM";
+import LogSlider from "./LogSlider";
+
+import DataTab from "./tabs/DataTab";
+
+import DatasetSource from "som/DatasetSource";
+import SOMController from "client/src/SOM";
 
 const style = require("./App.scss");
 
-class LogSlider extends React.Component<{
-  [key: string]: any;
-
-  value: number;
-  onChange(e: React.MouseEvent<{}>, value: number): void;
-}, void> {
-  render() {
-    let { value, onChange, ...props } = this.props;
-    return <Slider
-      value={Math.log10(value)}
-      onChange={(event, value) => onChange(event, Math.pow(10, value))}
-      {...props}
-    />;
-  }
-}
 
 class TrainTab extends React.Component<{
   iterationIndex: number;
@@ -143,6 +132,9 @@ interface IState {
   animationInterval: number | null;
   stepAnimationInterval: number | null;
   animationSpeed: number;
+
+  datasetRevision: number;
+  selectedDatasource: DatasetSource | null;
 }
 
 export default class App extends React.Component<void, IState> {
@@ -154,7 +146,10 @@ export default class App extends React.Component<void, IState> {
     this.state = {
       animationInterval: null,
       stepAnimationInterval: null,
-      animationSpeed: 1
+      animationSpeed: 1,
+
+      datasetRevision: 0,
+      selectedDatasource: null
     };
 
     this.som.initialize();
@@ -282,6 +277,7 @@ export default class App extends React.Component<void, IState> {
       <div className={style["main-view"]}>
         <ScatterPlot
           dataset={this.som.dataset}
+          datasetRevision={this.state.datasetRevision}
           model={this.som.model}
           animating={
             this.state.animationInterval !== null ||
@@ -331,6 +327,12 @@ export default class App extends React.Component<void, IState> {
             
           </Tab>
         </Tabs>
+        <DataTab
+          dataset={this.som.dataset}
+          revision={this.state.datasetRevision}
+          onUpdate={() => this.setState({ datasetRevision: this.state.datasetRevision + 1 })}
+          onSelect={selectedDatasource => this.setState({ selectedDatasource })}
+        />
         <TrainTab
           iterationIndex={this.som.trainer.currentIteration}
           iterationTotal={this.som.trainer.maxIteration}

@@ -11,6 +11,6 @@
     "noImplicitThis": true,
     "noUnusedLocals": true,
 
-    "baseUrl": "./client/"
+    "baseUrl": "./"
   }
 }

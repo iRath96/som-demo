@@ -1,5 +1,5 @@
 import * as React from "react";
-import Model from "../../som/Model";
+import Model from "som/Model";
 
 
 export interface IProps {

@@ -34,3 +34,19 @@ export abstract class RandomDatasetSource extends DatasetSource {
     }
   }
 }
+
+export class ClusterDatasetSource extends RandomDatasetSource {
+  constructor(
+    sampleCount: number,
+    public center: number[],
+    public stddev: number
+  ) {
+    super(sampleCount);
+  }
+
+  getSample(index: number) {
+    return this.center.map((v, i) =>
+      v + this.getRandomValue(index * this.center.length + i, Distribution.GAUSSIAN) * this.stddev
+    );
+  }
+}
