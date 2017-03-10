@@ -32,6 +32,10 @@
         &::-webkit-inner-spin-button {
           -webkit-appearance: none;
         }
+
+        &:focus {
+          border-bottom-color: #00bcd4;
+        }
       }
     }
   }
