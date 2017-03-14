@@ -2,13 +2,14 @@
   position: relative;
   border-bottom: 1px solid #ddd;
 
-  min-height: 40px;
+  min-height: 48px;
 
   div.content {
+    padding-top: 6px;
     padding-left: 40px;
 
     span.title {
-      font-size: .7em;
+      font-size: .8em;
 
       span.cluster-type {
         font-weight: bold;
@@ -26,7 +27,7 @@
         margin: 0 2px;
 
         /* Make this look like an ordinary text field */
-        -moz-appearance:textfield;
+        -moz-appearance: textfield;
 
         &::-webkit-outer-spin-button,
         &::-webkit-inner-spin-button {
@@ -44,7 +45,7 @@
 :local(.weight-editor) {
   div.color {
     position: absolute;
-    top: 10px;
+    top: 14px;
     left: 10px;
     width: 20px;
     height: 20px;

@@ -5,6 +5,9 @@ import Slider from "material-ui/Slider";
 import IconMenu from "material-ui/IconMenu";
 import MenuItem from "material-ui/MenuItem";
 import FontIcon from "material-ui/FontIcon";
+import Subheader from "material-ui/Subheader";
+import Divider from "material-ui/Divider";
+import { Toolbar, ToolbarGroup, ToolbarTitle } from "material-ui/Toolbar";
 
 import Dataset from "som/Dataset";
 import { DatasetSource, ClusterDatasetSource } from "som/DatasetSource";
@@ -82,6 +85,11 @@ class WeightEditor extends React.Component<{
   }
 }
 
+abstract class Example {
+  public name: string;
+  abstract generate(): DatasetSource[];
+}
+
 export interface IProps {
   revision: number;
   dataset: Dataset;
@@ -90,6 +98,8 @@ export interface IProps {
 }
 
 export default class DataTab extends React.Component<IProps, void> {
+  static examples: Example[] = [];
+
   protected renderClusterSource(source: ClusterDatasetSource, key: number) {
     return <div key={key} className={style["datasource"]}>
       <WeightEditor
@@ -170,27 +180,70 @@ export default class DataTab extends React.Component<IProps, void> {
     this.props.onUpdate();
   }
 
-  render() {
-    return <div>
-      <div style={{ lineHeight: "24px" }}>
-        <span>
-          {this.props.dataset.sources.length} sources
-        </span>
-        <IconMenu
-          iconButtonElement={<FontIcon className="material-icons">add</FontIcon>}
+  protected removeAllSources() {
+    this.props.dataset.sources = [];
+    this.props.onUpdate();
+  }
+
+  protected renderToolbar() {
+    return <Toolbar style={{
+      height: 28,
+      padding: "6px 8px"
+    }}>
+      <ToolbarGroup firstChild={true} style={{ marginLeft: 0 }}>
+        <ToolbarTitle
+          text={`${this.props.dataset.sources.length} sources`}
           style={{
-            float: "right"
+            fontSize: 12,
+            lineHeight: "20px"
           }}
+        />
+      </ToolbarGroup>
+      <ToolbarGroup>
+        <IconMenu
+          iconButtonElement={<FontIcon style={{ fontSize: 20 }} className="material-icons">add</FontIcon>}
         >
           <MenuItem value="1" primaryText="Cluster" onClick={() =>
             this.addSource(new ClusterDatasetSource(1000, [ 0, 0, 0 ], 0.1))
           } />
         </IconMenu>
-      </div>
-      <div style={{ clear: "both" }} />
+        <IconMenu
+          iconButtonElement={<FontIcon style={{ fontSize: 20 }} className="material-icons">expand_more</FontIcon>}
+        >
+          <MenuItem primaryText="Remove all" onClick={() => this.removeAllSources()} />
+          <Divider />
+          <Subheader>Examples</Subheader>
+          {DataTab.examples.map(example =>
+            <MenuItem value="1" primaryText={example.name} onClick={() => {
+              this.props.dataset.sources = example.generate();
+              this.props.onUpdate();
+            }} />
+          )}
+        </IconMenu>
+      </ToolbarGroup>
+    </Toolbar>;
+  }
+
+  render() {
+    return <div>
+      {this.renderToolbar()}
       <div className="sources">
         {this.props.dataset.sources.map((source, key) => this.renderSource(source, key))}
       </div>
     </div>;
   }
 }
+
+DataTab.examples.push(new class extends Example {
+  name = "Clusters";
+  generate() {
+    return [
+      new ClusterDatasetSource( 400, [ 0.80, 0.10, 0.10 ], 0.01),
+      new ClusterDatasetSource(1000, [ 0.88, 0.50, 0.10 ], 0.02),
+      new ClusterDatasetSource(1000, [ 1.00, 0.88, 0.39 ], 0.04),
+      new ClusterDatasetSource(2000, [ 0.40, 0.30, 0.50 ], 0.08),
+      new ClusterDatasetSource(1000, [ 0.35, 0.45, 0.75 ], 0.03),
+      new ClusterDatasetSource( 200, [ 0.49, 0.69, 0.21 ], 0.005)
+    ];
+  }
+});

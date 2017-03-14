@@ -5,6 +5,9 @@ body {
 
   overflow: hidden;
   background-color: #eee;
+
+  user-select: none;
+  cursor: default;
 }
 
 :local .main-view {
@@ -40,21 +43,4 @@ body {
   bottom: 0;
   right: 0;
   width: 25%;
-}
-
-:local(.train-tab) {
-  padding: 10px 20px;
-
-  div.controls {
-    text-align: center;
-  }
-
-  div.speed-control {
-    margin: 10px 0 20px;
-  }
-
-  hr {
-    border: none;
-    border-top: 1px solid #ccc;
-  }
 }

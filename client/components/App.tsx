@@ -1,132 +1,19 @@
 import * as React from "react";
 
-import IconButton from "material-ui/IconButton";
 import { Tabs, Tab } from "material-ui/Tabs";
 import FontIcon from "material-ui/FontIcon";
-import LinearProgress from "material-ui/LinearProgress";
 
 import ScatterPlot from "./ScatterPlot";
 import GridPlot from "./GridPlot";
 
-import LogSlider from "./LogSlider";
-
 import DataTab from "./tabs/DataTab";
+import TrainTab from "./tabs/TrainTab";
 
 import DatasetSource from "som/DatasetSource";
 import SOMController from "client/src/SOM";
 
 const style = require("./App.scss");
 
-
-class TrainTab extends React.Component<{
-  iterationIndex: number;
-  iterationTotal: number;
-
-  learningFactor: number;
-  neighborSize: number;
-  isTraining: boolean;
-  hasFinishedTraining: boolean;
-
-  animationSpeed: number;
-  setAnimationSpeed(value: number): void;
-
-  startTraining(): void;
-  endTraining(): void;
-  iterateSingle(): void;
-
-  reset(): void;
-}, void> {
-  protected renderProgress() {
-    let percentCompleted = Math.round(this.props.iterationIndex * 100 / this.props.iterationTotal);
-    
-    return <div className="progress">
-      <LinearProgress
-        mode="determinate"
-        value={percentCompleted}
-      />
-      <div style={{
-        marginTop: 5,
-        textAlign: "center"
-      }}>
-        #{this.props.iterationIndex}
-        <span style={{
-          paddingLeft: 5,
-          opacity: 0.5
-        }}>
-          ({percentCompleted} %)
-        </span>
-      </div>
-    </div>;
-  }
-
-  protected renderControls() {
-    let toggleTraining = this.props.isTraining ? this.props.endTraining : this.props.startTraining;
-    
-    return <div className="controls">
-      <IconButton
-        iconClassName="material-icons"
-        tooltip={this.props.isTraining ? "Stop training" : "Start training"}
-        onClick={toggleTraining}
-        disabled={this.props.hasFinishedTraining}
-      >
-        {this.props.isTraining ? "pause" : "play_arrow"}
-      </IconButton>
-      <IconButton
-        iconClassName="material-icons"
-        tooltip="One iteration"
-        onClick={this.props.iterateSingle}
-        disabled={this.props.hasFinishedTraining}
-      >
-        skip_next
-      </IconButton>
-      <IconButton
-        iconClassName="material-icons"
-        tooltip="Reset"
-        onClick={this.props.reset}
-      >
-        replay
-      </IconButton>
-    </div>;
-  }
-
-  protected renderSpeedControl() {
-    return <div className="speed-control">
-      <LogSlider
-        step={1}
-        min={-1}
-        max={3}
-        value={this.props.animationSpeed}
-        sliderStyle={{
-          margin: 0
-        }}
-        onChange={(event, animationSpeed) =>
-          this.props.setAnimationSpeed(animationSpeed)
-        }
-      />
-      <b>Speed:</b> {this.props.animationSpeed}&times;
-    </div>;
-  }
-
-  protected renderStatus() {
-    return <div className="status">
-      <b>LF:</b> {this.props.learningFactor.toFixed(5)}<br />
-      <b>NS:</b> {this.props.neighborSize.toFixed(5)}
-    </div>;
-  }
-
-  render() {
-    return <div className={style["train-tab"]}>
-      {this.renderControls()}
-      {this.renderSpeedControl()}
-
-      {this.renderProgress()}
-
-      <hr />
-
-      {this.renderStatus()}
-    </div>;
-  }
-}
 
 interface IState {
   animationInterval: number | null;
@@ -295,12 +182,17 @@ export default class App extends React.Component<void, IState> {
         />
       </div>
       <div className={style["sidebar"]}>
-        <Tabs>
+        <Tabs style={{ height: "100%", overflow: "scroll" }}>
           <Tab
             icon={<FontIcon className="material-icons">pie_chart</FontIcon>}
             label="DATA"
           >
-            
+            <DataTab
+              dataset={this.som.dataset}
+              revision={this.state.datasetRevision}
+              onUpdate={() => this.setState({ datasetRevision: this.state.datasetRevision + 1 })}
+              onSelect={selectedDatasource => this.setState({ selectedDatasource })}
+            />
           </Tab>
           <Tab
             icon={<FontIcon className="material-icons">apps</FontIcon>}
@@ -312,7 +204,24 @@ export default class App extends React.Component<void, IState> {
             icon={<FontIcon className="material-icons">last_page</FontIcon>}
             label="TRAIN"
           >
-            
+            <TrainTab
+              iterationIndex={this.som.trainer.currentIteration}
+              iterationTotal={this.som.trainer.maxIteration}
+
+              learningFactor={this.som.trainer.learningRate}
+              neighborSize={this.som.trainer.neighborSize}
+              isTraining={this.isAnimating}
+              hasFinishedTraining={this.som.trainer.hasFinished}
+
+              animationSpeed={this.state.animationSpeed}
+              setAnimationSpeed={animationSpeed => this.setState({ animationSpeed })}
+
+              startTraining={() => this.startAnimating()}
+              endTraining={() => this.stopAnimating()}
+              iterateSingle={() => this.iterateSingle()}
+
+              reset={() => this.reset()}
+            />
           </Tab>
           <Tab
             icon={<FontIcon className="material-icons">remove_red_eye</FontIcon>}
@@ -327,30 +236,6 @@ export default class App extends React.Component<void, IState> {
             
           </Tab>
         </Tabs>
-        <DataTab
-          dataset={this.som.dataset}
-          revision={this.state.datasetRevision}
-          onUpdate={() => this.setState({ datasetRevision: this.state.datasetRevision + 1 })}
-          onSelect={selectedDatasource => this.setState({ selectedDatasource })}
-        />
-        <TrainTab
-          iterationIndex={this.som.trainer.currentIteration}
-          iterationTotal={this.som.trainer.maxIteration}
-
-          learningFactor={this.som.trainer.learningRate}
-          neighborSize={this.som.trainer.neighborSize}
-          isTraining={this.isAnimating}
-          hasFinishedTraining={this.som.trainer.hasFinished}
-
-          animationSpeed={this.state.animationSpeed}
-          setAnimationSpeed={animationSpeed => this.setState({ animationSpeed })}
-
-          startTraining={() => this.startAnimating()}
-          endTraining={() => this.stopAnimating()}
-          iterateSingle={() => this.iterateSingle()}
-
-          reset={() => this.reset()}
-        />
       </div>
     </div>;
   }
