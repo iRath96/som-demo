@@ -24,6 +24,8 @@ export default class ScatterPlot extends React.Component<IProps, void> {
   protected datasetGeometry: THREE.Geometry;
   protected datasetPoints: THREE.ParticleSystem;
 
+  protected mapGeometry: THREE.Geometry;
+  protected mapLineSegments: THREE.LineSegments;
   protected weightsToVectors: Map<number, Set<THREE.Vector3>>;
 
   protected isDirty: boolean = true;
@@ -162,7 +164,7 @@ export default class ScatterPlot extends React.Component<IProps, void> {
 
   protected initializeMapGeometry() {
     this.weightsToVectors = new Map<number, Set<THREE.Vector3>>();
-    let lineGeo = new THREE.Geometry();
+    this.mapGeometry = new THREE.Geometry();
 
     for (let i = 0; i < this.props.model.neuronCount; ++i) {
       if (!this.weightsToVectors.has(i))
@@ -182,7 +184,7 @@ export default class ScatterPlot extends React.Component<IProps, void> {
           this.weightsToVectors.get(i)!.add(iWT);
           this.weightsToVectors.get(j)!.add(jWT);
 
-          lineGeo.vertices.push(
+          this.mapGeometry.vertices.push(
             iWT,
             jWT
           );
@@ -195,12 +197,12 @@ export default class ScatterPlot extends React.Component<IProps, void> {
       linewidth: 4
     });
 
-    lineGeo.applyMatrix(
+    this.mapGeometry.applyMatrix(
       new THREE.Matrix4().makeTranslation(-0.5, -0.5, -0.5)
     );
 
-    let line = new THREE.LineSegments(lineGeo, lineMat);
-    this.scatterPlot.add(line);
+    this.mapLineSegments = new THREE.LineSegments(this.mapGeometry, lineMat);
+    this.scatterPlot.add(this.mapLineSegments);
   }
 
   protected updateMapGeometry() {
@@ -212,6 +214,8 @@ export default class ScatterPlot extends React.Component<IProps, void> {
         tv.z = weights[2] - 0.5;
       });
     });
+
+    this.mapGeometry.verticesNeedUpdate = true;
   }
 
   protected updateAspectRatio() {
