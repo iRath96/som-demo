@@ -5,58 +5,58 @@ import Dataset from "som/Dataset";
 import Model from "som/Model";
 
 
-export function scatter3D(
-  canvas: HTMLCanvasElement,
-  dataset: Dataset,
-  model: Model
-) {
-  var ref = {
-    animating: false,
-    needsRender: true,
-    needsResize: false,
-    datasetRevision: 0
-  };
+export interface IProps {
+  dataset: Dataset;
+  datasetRevision: number;
 
-  let currentDatasetRevision = 0;
+  model: Model;
+  animating: boolean;
+}
 
-  var renderer = new THREE.WebGLRenderer({
-    antialias: true,
-    canvas
-  });
- 
-  renderer.setClearColor(0xEEEEEE, 1.0);
+export default class ScatterPlot extends React.Component<IProps, void> {
+  protected renderer: THREE.WebGLRenderer;
+  protected camera: THREE.PerspectiveCamera;
+  protected scene: THREE.Scene;
 
-  var camera = new THREE.PerspectiveCamera(30, 1, 1, 10000);
-  camera.position.z = 3;
-  camera.position.x = -1;
-  camera.position.y = 1;
+  protected scatterPlot: THREE.Object3D;
+  protected coordinateSystem: THREE.Line;
 
-  function resize() {
-    var w = canvas.width, h = canvas.height;
+  protected datasetGeometry: THREE.Geometry;
+  protected datasetPoints: THREE.ParticleSystem;
+
+  protected weightsToVectors: Map<number, Set<THREE.Vector3>>;
+
+  protected isDirty: boolean = true;
+
+  constructor(props: IProps) {
+    super(props);
+
+    // initialize camera
+    this.camera = new THREE.PerspectiveCamera(30, 1, 1, 10000);
+    this.camera.position.z = 3;
+    this.camera.position.x = -1;
+    this.camera.position.y = 1;
+
+    // initialize scene
+    this.scene = new THREE.Scene();
+
+    // initialize scatter plot
+    this.scatterPlot = new THREE.Object3D();
+    this.scatterPlot.rotation.y = 0;
     
-    camera.aspect = w / h;
-    camera.updateProjectionMatrix();
+    this.scene.add(this.scatterPlot);
 
-    renderer.setSize(w, h);
-
-    canvas.style.width = "";
-    canvas.style.height = "";
+    // others
+    this.initializeCoordinateSystem();
+    this.updateDatasetGeometry();
+    this.initializeMapGeometry();
   }
 
-  resize();
+  protected initializeCoordinateSystem() {
+    function v(x: number, y: number, z: number) {
+      return new THREE.Vector3(x, y, z);
+    }
 
-  var scene = new THREE.Scene();
-
-  var scatterPlot = new THREE.Object3D();
-  scene.add(scatterPlot);
-
-  scatterPlot.rotation.y = 0;
-
-  function v(x: number, y: number, z: number) {
-    return new THREE.Vector3(x, y, z);
-  }
-
-  { // build coordinate system
     interface IVec {
       [key: string]: number;
 
@@ -73,7 +73,7 @@ export function scatter3D(
     let black = new THREE.Color(0, 0, 0);
     let gray = new THREE.Color(0.8, 0.8, 0.8);
 
-    var lineGeo = new THREE.Geometry();
+    let lineGeo = new THREE.Geometry();
     lineGeo.vertices.push(
       v(vpts.min.x, vpts.min.y, vpts.min.z), v(vpts.max.x, vpts.min.y, vpts.min.z),
       v(vpts.min.x, vpts.min.y, vpts.min.z), v(vpts.min.x, vpts.max.y, vpts.min.z),
@@ -112,81 +112,75 @@ export function scatter3D(
       new THREE.Matrix4().makeTranslation(-0.5, -0.5, -0.5)
     );
 
-    var lineMat = new THREE.LineBasicMaterial({
+    let lineMat = new THREE.LineBasicMaterial({
       color: 0xffffff,
       vertexColors: THREE.VertexColors,
       linewidth: 2
     });
 
-    var line = new THREE.Line(lineGeo, lineMat, THREE.LinePieces);
-    scatterPlot.add(line);
+    this.coordinateSystem = new THREE.Line(lineGeo, lineMat, THREE.LinePieces);
+    this.scatterPlot.add(this.coordinateSystem);
   }
 
-  let updatePointGeo = (function () {
-    let pointGeo: THREE.Geometry, points: THREE.ParticleSystem;
-    
-    return function () {
-      let needsNewGeometry = !pointGeo || pointGeo.vertices.length !== dataset.sampleCount;
+  protected updateDatasetGeometry() {
+    let needsNewGeometry = !this.datasetGeometry || this.datasetGeometry.vertices.length !== this.props.dataset.sampleCount;
 
-      if (needsNewGeometry) {
-        // create new geometry
+    if (needsNewGeometry) {
+      // create new geometry
 
-        if (points)
-          scatterPlot.remove(points);
-        
-        var mat = new THREE.ParticleBasicMaterial({
-          color: 0x222222,
-          size: 0.01
-        });
+      if (this.datasetPoints)
+        this.scatterPlot.remove(this.datasetPoints);
+      
+      let mat = new THREE.ParticleBasicMaterial({
+        color: 0x222222,
+        size: 0.01
+      });
 
-        pointGeo = new THREE.Geometry();
+      this.datasetGeometry = new THREE.Geometry();
 
-        for (var i = 0; i < dataset.sampleCount; ++i) {
-          let [ x, y, z ] = dataset.getSample(i);
-          pointGeo.vertices.push(new THREE.Vector3(x, y, z));
-        }
-
-        points = new THREE.ParticleSystem(pointGeo, mat);
-        scatterPlot.add(points);
-      } else {
-        // update existing geometry
-        for (var i = 0; i < dataset.sampleCount; ++i) {
-          let vertex = pointGeo.vertices[i];
-          [ vertex.x, vertex.y, vertex.z ] = dataset.getSample(i);
-        }
-
-        pointGeo.verticesNeedUpdate = true;
+      for (let i = 0; i < this.props.dataset.sampleCount; ++i) {
+        let [ x, y, z ] = this.props.dataset.getSample(i);
+        this.datasetGeometry.vertices.push(new THREE.Vector3(x, y, z));
       }
 
-      pointGeo.applyMatrix(
-        new THREE.Matrix4().makeTranslation(-0.5, -0.5, -0.5)
-      );
+      this.datasetPoints = new THREE.ParticleSystem(this.datasetGeometry, mat);
+      this.scatterPlot.add(this.datasetPoints);
+    } else {
+      // update existing geometry
+      for (let i = 0; i < this.props.dataset.sampleCount; ++i) {
+        let vertex = this.datasetGeometry.vertices[i];
+        [ vertex.x, vertex.y, vertex.z ] = this.props.dataset.getSample(i);
+      }
+
+      this.datasetGeometry.verticesNeedUpdate = true;
     }
-  })();
 
-  updatePointGeo();
+    this.datasetGeometry.applyMatrix(
+      new THREE.Matrix4().makeTranslation(-0.5, -0.5, -0.5)
+    );
+  }
 
-  var weightsToVectors = new Map<number, Set<THREE.Vector3>>();
-  var lineGeo = new THREE.Geometry();
+  protected initializeMapGeometry() {
+    this.weightsToVectors = new Map<number, Set<THREE.Vector3>>();
+    let lineGeo = new THREE.Geometry();
 
-  {
-    for (let i = 0; i < model.neuronCount; ++i) {
-      if (!weightsToVectors.has(i))
-        weightsToVectors.set(i, new Set<THREE.Vector3>());
+    for (let i = 0; i < this.props.model.neuronCount; ++i) {
+      if (!this.weightsToVectors.has(i))
+        this.weightsToVectors.set(i, new Set<THREE.Vector3>());
       
-      for (let j = 0; j < model.neuronCount; ++j) {
-        if (!weightsToVectors.has(j))
-          weightsToVectors.set(j, new Set<THREE.Vector3>());
+      for (let j = 0; j < this.props.model.neuronCount; ++j) {
+        if (!this.weightsToVectors.has(j))
+          this.weightsToVectors.set(j, new Set<THREE.Vector3>());
 
-        if (model.distanceMatrix.get(i, j) <= 1) {
-          let iW = model.weightMatrix.getRow(i);
-          let jW = model.weightMatrix.getRow(j);
+        if (this.props.model.distanceMatrix.get(i, j) <= 1) {
+          let iW = this.props.model.weightMatrix.getRow(i);
+          let jW = this.props.model.weightMatrix.getRow(j);
 
           let iWT = new THREE.Vector3(iW[0], iW[1], iW[2]);
           let jWT = new THREE.Vector3(jW[0], jW[1], jW[2]);
 
-          weightsToVectors.get(i)!.add(iWT);
-          weightsToVectors.get(j)!.add(jWT);
+          this.weightsToVectors.get(i)!.add(iWT);
+          this.weightsToVectors.get(j)!.add(jWT);
 
           lineGeo.vertices.push(
             iWT,
@@ -196,7 +190,7 @@ export function scatter3D(
       };
     };
 
-    var lineMat = new THREE.LineBasicMaterial({
+    let lineMat = new THREE.LineBasicMaterial({
       color: 0xff0000,
       linewidth: 4
     });
@@ -205,146 +199,51 @@ export function scatter3D(
       new THREE.Matrix4().makeTranslation(-0.5, -0.5, -0.5)
     );
 
-    var line = new THREE.LineSegments(lineGeo, lineMat);
-    scatterPlot.add(line);
+    let line = new THREE.LineSegments(lineGeo, lineMat);
+    this.scatterPlot.add(line);
   }
 
-  renderer.render(scene, camera);
-
-  var down = false;
-  var sx = 0,
-      sy = 0;
-      
-  canvas.onmousedown = ev => {
-    down = true;
-    dx = 0;
-    dy = 0;
-    sx = ev.clientX;
-    sy = ev.clientY;
-  };
-
-  window.onmouseup = () => {
-    down = false;
-  };
-
-  let dx: number = 0, dy: number = 0;
-
-  let lastMouseMove = new Date().getTime();
-  window.onmousemove = ev => {
-    let t = new Date().getTime();
-    let deltaT = t - lastMouseMove;
-    lastMouseMove = t;
-
-    if (down) {
-      let timeFactor = Math.max(deltaT / 1000 * 60, 0.001);
-
-      dx = (ev.clientX - sx) / timeFactor;
-      dy = (ev.clientY - sy) / timeFactor;
-
-      scatterPlot.rotation.y += dx * timeFactor * 0.01;
-      camera.position.y += dy * timeFactor * 0.01;
-
-      const softMax = (a: number, max: number) =>
-        max * (1 / (1 + Math.exp(-4 * a / max)) - 1/2)
-      ;
-
-      dx = softMax(dx * 0.5, 40);
-      dy = softMax(dy * 0.5, 40);
-
-      sx = ev.clientX;
-      sy = ev.clientY;
-    }
-  }
-
-  let lastT: number = new Date().getTime();
-  function animate() {
-    let t = new Date().getTime();
-    let deltaT = t - lastT;
-    lastT = t;
-
-    if (ref.needsResize) {
-      resize();
-      
-      ref.needsResize = false;
-      ref.needsRender = true;
-    }
-
-    if (currentDatasetRevision !== ref.datasetRevision) {
-      currentDatasetRevision = ref.datasetRevision;
-      updatePointGeo();
-
-      ref.needsRender = true;
-    }
-
-    if (Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) {
-      // stop moving
-      dx = 0;
-      dy = 0;
-    }
-
-    if (
-      ref.needsRender ||
-      down ||
-      dx !== 0 || dy !== 0 ||
-      ref.animating
-    ) {
-      ref.needsRender = false;
-
-      if (!down) {
-        let timeFactor = deltaT / 1000 * 60;
-
-        dx *= Math.pow(0.99, timeFactor);
-        dy *= Math.pow(0.95, timeFactor);
-        scatterPlot.rotation.y += dx * 0.01 * timeFactor;
-        camera.position.y += dy * 0.01 * timeFactor;
-      }
-
-      [ ...weightsToVectors ].forEach(([ neuronIndex, tvs ]) => {
-        let weights = model.weightMatrix.getRow(neuronIndex);
-        tvs.forEach(tv => {
-          tv.x = weights[0] - 0.5;
-          tv.y = weights[1] - 0.5;
-          tv.z = weights[2] - 0.5;
-        });
+  protected updateMapGeometry() {
+    [ ...this.weightsToVectors ].forEach(([ neuronIndex, tvs ]) => {
+      let weights = this.props.model.weightMatrix.getRow(neuronIndex);
+      tvs.forEach(tv => {
+        tv.x = weights[0] - 0.5;
+        tv.y = weights[1] - 0.5;
+        tv.z = weights[2] - 0.5;
       });
-
-      //if (ref.animating)
-        lineGeo.verticesNeedUpdate = true;
-
-      renderer.clear();
-      camera.lookAt(scene.position);
-      renderer.render(scene, camera);
-    }
-
-    window.requestAnimationFrame(animate);
+    });
   }
 
-  animate();
+  protected updateAspectRatio() {
+    let canvas = this.refs["canvas"] as HTMLCanvasElement;
+    let w = canvas.width, h = canvas.height;
+    
+    this.camera.aspect = w / h;
+    this.camera.updateProjectionMatrix();
 
-  return ref;
-}
+    this.renderer.setSize(w, h);
 
-export interface IProps {
-  dataset: Dataset;
-  datasetRevision: number;
+    canvas.style.width = "";
+    canvas.style.height = "";
 
-  model: Model;
-  animating: boolean;
-}
-
-export default class ScatterPlot extends React.Component<IProps, void> {
-  protected renderElement: HTMLCanvasElement;
-  protected ref: any;
+    this.isDirty = true;
+  }
 
   componentDidMount() {
-    this.ref = scatter3D(
-      this.refs["canvas"] as any,
-      this.props.dataset,
-      this.props.model
-    );
+    let canvas = this.refs["canvas"] as HTMLCanvasElement;
 
+    // initialize renderer
+    this.renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      canvas
+    });
+  
+    this.renderer.setClearColor(0xEEEEEE, 1.0);
+
+    // update canvas resolution on resize
     let resizeTimeout: any;
     window.addEventListener("resize", e => {
+      // throttle to improve performance
       clearTimeout(resizeTimeout);
       resizeTimeout = setTimeout(() => {
         console.log("resize");
@@ -353,6 +252,93 @@ export default class ScatterPlot extends React.Component<IProps, void> {
     });
 
     this.resizeCanvas();
+
+    // drag handlers
+    let down = false;
+    let sx = 0,
+        sy = 0;
+    
+    canvas.onmousedown = ev => {
+      down = true;
+      dx = 0;
+      dy = 0;
+      sx = ev.clientX;
+      sy = ev.clientY;
+    };
+
+    window.onmouseup = () => {
+      down = false;
+    };
+
+    let dx: number = 0, dy: number = 0;
+
+    let lastMouseMove = new Date().getTime();
+    window.onmousemove = ev => {
+      let t = new Date().getTime();
+      let deltaT = t - lastMouseMove;
+      lastMouseMove = t;
+
+      if (down) {
+        let timeFactor = Math.max(deltaT / 1000 * 60, 0.001);
+
+        dx = (ev.clientX - sx) / timeFactor;
+        dy = (ev.clientY - sy) / timeFactor;
+
+        this.scatterPlot.rotation.y += dx * timeFactor * 0.01;
+        this.camera.position.y += dy * timeFactor * 0.01;
+
+        const softMax = (a: number, max: number) =>
+          max * (1 / (1 + Math.exp(-4 * a / max)) - 1/2)
+        ;
+
+        dx = softMax(dx * 0.5, 40);
+        dy = softMax(dy * 0.5, 40);
+
+        sx = ev.clientX;
+        sy = ev.clientY;
+      }
+    }
+
+    let lastT: number = new Date().getTime();
+    const animate = () => {
+      let t = new Date().getTime();
+      let deltaT = t - lastT;
+      lastT = t;
+
+      if (Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) {
+        // stop moving
+        dx = 0;
+        dy = 0;
+      }
+
+      if (
+        this.isDirty ||
+        down ||
+        dx !== 0 || dy !== 0 ||
+        this.props.animating
+      ) {
+        this.isDirty = false;
+
+        if (!down) {
+          let timeFactor = deltaT / 1000 * 60;
+
+          dx *= Math.pow(0.99, timeFactor);
+          dy *= Math.pow(0.95, timeFactor);
+          this.scatterPlot.rotation.y += dx * 0.01 * timeFactor;
+          this.camera.position.y += dy * 0.01 * timeFactor;
+        }
+
+        this.updateMapGeometry();
+
+        this.renderer.clear();
+        this.camera.lookAt(this.scene.position);
+        this.renderer.render(this.scene, this.camera);
+      }
+
+      window.requestAnimationFrame(animate);
+    }
+
+    animate();
   }
 
   protected resizeCanvas() {
@@ -362,13 +348,13 @@ export default class ScatterPlot extends React.Component<IProps, void> {
     canvas.width = rect.width * 2;
     canvas.height = rect.height * 2;
 
-    this.ref.needsResize = true;
+    this.updateAspectRatio();
   }
 
   componentWillReceiveProps(props: IProps) {
-    this.ref.animating = props.animating;
-    this.ref.needsRender = true;
-    this.ref.datasetRevision = props.datasetRevision;
+    if (this.props.datasetRevision !== props.datasetRevision)
+      // dataset was updated
+      this.updateDatasetGeometry();
   }
 
   shouldComponentUpdate() {
