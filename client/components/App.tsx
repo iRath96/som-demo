@@ -7,6 +7,7 @@ import ScatterPlot from "./ScatterPlot";
 import GridPlot from "./GridPlot";
 
 import DataTab from "./tabs/DataTab";
+import ModelTab from "./tabs/ModelTab";
 import TrainTab from "./tabs/TrainTab";
 
 import DatasetSource from "som/DatasetSource";
@@ -20,7 +21,9 @@ interface IState {
   stepAnimationInterval: number | null;
   animationSpeed: number;
 
+  modelRevision: number;
   datasetRevision: number;
+
   selectedDatasource: DatasetSource | null;
 }
 
@@ -36,6 +39,8 @@ export default class App extends React.Component<void, IState> {
       animationSpeed: 1,
 
       datasetRevision: 0,
+      modelRevision: 0,
+
       selectedDatasource: null
     };
 
@@ -165,7 +170,10 @@ export default class App extends React.Component<void, IState> {
         <ScatterPlot
           dataset={this.som.dataset}
           datasetRevision={this.state.datasetRevision}
+          
           model={this.som.model}
+          modelRevision={this.state.modelRevision}
+
           animating={
             this.state.animationInterval !== null ||
             this.state.stepAnimationInterval !== null
@@ -198,7 +206,23 @@ export default class App extends React.Component<void, IState> {
             icon={<FontIcon className="material-icons">apps</FontIcon>}
             label="MODEL"
           >
-            
+            <ModelTab
+              model={this.som.model}
+              initializer={this.som.initializer}
+              trainer={this.som.trainer}
+
+              modelRevision={this.state.modelRevision}
+
+              onUpdateModel={() => {
+                this.som.initialize();
+                this.setState({ modelRevision: this.state.modelRevision + 1 });
+              }}
+              onChangeInitializer={initializer => {
+                this.som.initializer = initializer;
+                this.som.initialize();
+                this.forceUpdate();
+              }}
+            />
           </Tab>
           <Tab
             icon={<FontIcon className="material-icons">last_page</FontIcon>}
@@ -224,16 +248,11 @@ export default class App extends React.Component<void, IState> {
             />
           </Tab>
           <Tab
-            icon={<FontIcon className="material-icons">remove_red_eye</FontIcon>}
-            label="VIEW"
+            icon={<FontIcon className="material-icons">settings</FontIcon>}
+            label="OTHER"
           >
-            
-          </Tab>
-          <Tab
-            icon={<FontIcon className="material-icons">info</FontIcon>}
-            label="ABOUT"
-          >
-            
+            View settings<br />
+            About
           </Tab>
         </Tabs>
       </div>

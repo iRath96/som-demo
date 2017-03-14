@@ -10,6 +10,8 @@ export interface IProps {
   datasetRevision: number;
 
   model: Model;
+  modelRevision: number;
+
   animating: boolean;
 }
 
@@ -201,6 +203,9 @@ export default class ScatterPlot extends React.Component<IProps, void> {
       new THREE.Matrix4().makeTranslation(-0.5, -0.5, -0.5)
     );
 
+    if (this.mapLineSegments)
+      this.scatterPlot.remove(this.mapLineSegments);
+
     this.mapLineSegments = new THREE.LineSegments(this.mapGeometry, lineMat);
     this.scatterPlot.add(this.mapLineSegments);
   }
@@ -359,6 +364,12 @@ export default class ScatterPlot extends React.Component<IProps, void> {
     if (this.props.datasetRevision !== props.datasetRevision)
       // dataset was updated
       this.updateDatasetGeometry();
+    
+    if (this.props.modelRevision !== props.modelRevision)
+      // model dimensions were updated
+      this.initializeMapGeometry();
+
+    this.isDirty = true;
   }
 
   shouldComponentUpdate() {

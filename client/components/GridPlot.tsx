@@ -34,6 +34,9 @@ export default class GridPlot extends React.Component<IProps, void> {
 
   componentWillReceiveProps(props: IProps) {
     let canvas = this.refs["canvas"] as HTMLCanvasElement;
+    canvas.width = 2 * this.props.width * this.props.tileWidth;
+    canvas.height = this.props.height * this.props.tileHeight;
+    
     let ctx = canvas.getContext("2d")!;
 
     let umatrix = new Map<number, number>();
