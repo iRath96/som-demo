@@ -50,3 +50,32 @@ export class ClusterDatasetSource extends RandomDatasetSource {
     );
   }
 }
+
+export class CallbackDatasetSource extends RandomDatasetSource {
+  private _code: string;
+  private _callback: (index: number) => number[];
+
+  constructor(
+    sampleCount: number,
+    code: string
+  ) {
+    super(sampleCount);
+
+    this.code = code;
+  }
+
+  set code(code: string) {
+    // we provide "source" because there seems to be no way to specify the "this"-context for monaco-editor
+    // we provide "Distribution"" because there seems to be no other way to add something to the context of a function
+    this._callback = new Function("index", "source", "Distribution", code) as any;
+    this._code = code;
+  }
+
+  get code() {
+    return this._code;
+  }
+
+  getSample(index: number) {
+    return (this._callback as any)(index, this, Distribution);
+  }
+}

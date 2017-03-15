@@ -4,6 +4,17 @@
 
   min-height: 48px;
 
+  span.js-label {
+    position: absolute;
+    display: block;
+    width: 40px;
+    text-align: center;
+    line-height: 48px;
+    color: #ccc;
+    font-weight: bold;
+    font-size: 1.4em;
+  }
+
   div.content {
     padding-top: 6px;
     padding-left: 40px;

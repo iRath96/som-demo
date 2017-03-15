@@ -76,8 +76,6 @@ export default class Model {
         this.distanceMatrix.set(j, i, distSqr);
       }
     }
-    
-    console.log(this.distanceMatrix);
   }
 
   /** Returns the count of neurons in this model. */

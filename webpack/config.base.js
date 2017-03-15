@@ -1,5 +1,6 @@
 var path = require("path");
 var webpack = require("webpack");
+var CopyWebpackPlugin = require("copy-webpack-plugin");
 
 var NODE_ENV = process.env.NODE_ENV;
 
@@ -23,7 +24,13 @@ module.exports = {
       __STAGING__: env.staging,
       __PRODUCTION__: env.production,
       __CURRENT_ENV__: "\"" + (NODE_ENV) + "\""
-    })
+    }),
+    new CopyWebpackPlugin([
+      {
+        from: "node_modules/monaco-editor/min/vs",
+        to: "vs",
+      }
+    ])
   ],
 
   entry: [
@@ -32,7 +39,7 @@ module.exports = {
 
   output: {
     path: path.join(process.cwd(), "../dist/assets"),
-    publicPath: "/assets/",
+    publicPath: "/",
     filename: "app.js"
   },
 

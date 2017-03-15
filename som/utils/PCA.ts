@@ -41,8 +41,6 @@ export default class PCA {
           this.max[i] = v;
       })
     );
-
-    console.log(this.min, this.max);
   }
 
   static mean(data: number[][]) {

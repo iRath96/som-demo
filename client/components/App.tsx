@@ -198,7 +198,10 @@ export default class App extends React.Component<void, IState> {
             <DataTab
               dataset={this.som.dataset}
               revision={this.state.datasetRevision}
-              onUpdate={() => this.setState({ datasetRevision: this.state.datasetRevision + 1 })}
+              onUpdate={() => {
+                this.som.initialize();
+                this.setState({ datasetRevision: this.state.datasetRevision + 1 });
+              }}
               onSelect={selectedDatasource => this.setState({ selectedDatasource })}
             />
           </Tab>
