@@ -79,14 +79,14 @@ export default class DataTab extends React.Component<IProps, void> {
         /> to
         <NumberInput
           value={this.props.trainer.learningRateBounds.end}
-          onChange={v => this.props.trainer.neighborSizeBounds.end = v}
+          onChange={v => this.props.trainer.learningRateBounds.end = v}
         />
       </div>
       <div className={style["control-with-label"]}>
         <span>Neighbor size</span>
         <NumberInput
           value={this.props.trainer.neighborSizeBounds.start}
-          onChange={v => this.props.trainer.learningRateBounds.start = v}
+          onChange={v => this.props.trainer.neighborSizeBounds.start = v}
         /> to
         <NumberInput
           value={this.props.trainer.neighborSizeBounds.end}
