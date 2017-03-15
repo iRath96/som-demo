@@ -11,20 +11,20 @@ export interface IProps {
 }
 
 export default class GridPlot extends React.Component<IProps, void> {
-  protected colorForNeuron(neuronIndex: number) {
+  protected colorForNeuron(neuronIndex: number, model: Model) {
     return "rgb(" +
-      this.props.model.weightMatrix.getRow(neuronIndex)
+      model.weightMatrix.getRow(neuronIndex)
         .map(v => Math.max(0, Math.min(Math.floor(v * 255), 255)))
         .join(", ") +
     ")";
   }
 
-  protected avgDistForNeuron(neuronIndex: number) {
-    let weights = this.props.model.weightMatrix.getRow(neuronIndex);
+  protected avgDistForNeuron(neuronIndex: number, model: Model) {
+    let weights = model.weightMatrix.getRow(neuronIndex);
     let distances = [];
-    for (let i = 0; i < this.props.model.neuronCount; ++i)
-      if (i !== neuronIndex && this.props.model.distanceMatrix.get(neuronIndex, i) <= 1) {
-        let w = this.props.model.weightMatrix.getRow(i);
+    for (let i = 0; i < model.neuronCount; ++i)
+      if (i !== neuronIndex && model.distanceMatrix.get(neuronIndex, i) <= 1) {
+        let w = model.weightMatrix.getRow(i);
         let dist = weights.reduce((sum, v, i) => sum + (v - w[i]) ** 2, 0);
         distances.push(Math.sqrt(dist));
       }
@@ -32,42 +32,50 @@ export default class GridPlot extends React.Component<IProps, void> {
     return distances.reduce((sum, v) => sum + v) / distances.length;
   }
 
-  componentWillReceiveProps(props: IProps) {
+  protected redraw(props: IProps) {
     let canvas = this.refs["canvas"] as HTMLCanvasElement;
-    canvas.width = 2 * this.props.width * this.props.tileWidth;
-    canvas.height = this.props.height * this.props.tileHeight;
+    canvas.width = 2 * props.width * props.tileWidth;
+    canvas.height = props.height * props.tileHeight;
     
     let ctx = canvas.getContext("2d")!;
 
     let umatrix = new Map<number, number>();
-    for (let i = 0; i < this.props.model.neuronCount; ++i)
-      umatrix.set(i, this.avgDistForNeuron(i));
+    for (let i = 0; i < props.model.neuronCount; ++i)
+      umatrix.set(i, this.avgDistForNeuron(i, props.model));
     
     let v = [ ...umatrix.values() ].sort((a, b) => a - b);
     let minDist = v.shift()!;
     let maxDist = v.pop()!;
 
     // redraw canvas
-    for (let neuronIndex = 0; neuronIndex < this.props.model.neuronCount; ++neuronIndex) {
-      let [ x, y ] = this.props.model.neuronPositionInLattice(neuronIndex);
-      ctx.fillStyle = this.colorForNeuron(neuronIndex);
+    for (let neuronIndex = 0; neuronIndex < props.model.neuronCount; ++neuronIndex) {
+      let [ x, y ] = props.model.neuronPositionInLattice(neuronIndex);
+      ctx.fillStyle = this.colorForNeuron(neuronIndex, props.model);
       ctx.fillRect(
-        x * this.props.tileWidth,
-        y * this.props.tileHeight,
-        this.props.tileWidth,
-        this.props.tileHeight
+        x * props.tileWidth,
+        y * props.tileHeight,
+        props.tileWidth,
+        props.tileHeight
       );
 
       let normDist = (umatrix.get(neuronIndex)! - minDist) / (maxDist - minDist);
       let shade = Math.floor(normDist * 255);
       ctx.fillStyle = `rgb(${shade}, ${shade}, ${shade})`;
       ctx.fillRect(
-        (x + this.props.width) * this.props.tileWidth,
-        y * this.props.tileHeight,
-        this.props.tileWidth,
-        this.props.tileHeight
+        (x + props.width) * props.tileWidth,
+        y * props.tileHeight,
+        props.tileWidth,
+        props.tileHeight
       );
     }
+  }
+
+  componentDidMount() {
+    this.redraw(this.props);
+  }
+
+  componentWillReceiveProps(props: IProps) {
+    this.redraw(props);
   }
 
   shouldComponentUpdate() {
