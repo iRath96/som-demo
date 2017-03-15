@@ -334,6 +334,9 @@ export default class DataTab extends React.Component<IProps, IState> {
           <MenuItem value="1" primaryText="Cluster" onClick={() =>
             this.addSource(new ClusterDatasetSource(1000, [ 0, 0, 0 ], 0.1))
           } />
+          <MenuItem value="2" primaryText="JavaScript" onClick={() =>
+            this.addSource(new CallbackDatasetSource(1000, require("raw-loader!client/assets/examples/template.js")))
+          } />
         </IconMenu>
         <IconMenu
           iconButtonElement={<FontIcon style={{ fontSize: 20 }} className="material-icons">expand_more</FontIcon>}
