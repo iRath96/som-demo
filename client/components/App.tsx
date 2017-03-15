@@ -66,9 +66,10 @@ export default class App extends React.Component<void, IState> {
   }
 
   protected recalculateError(sampleCount: number) {
+    let { eQ, eT } = this.som.getErrors();
     this.setState({
-      quantizationError: this.som.getQuantizationError(sampleCount),
-      topographicError: this.som.getTopographicError(sampleCount)
+      quantizationError: eQ,
+      topographicError: eT
     });
   }
 

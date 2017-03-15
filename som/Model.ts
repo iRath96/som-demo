@@ -95,13 +95,9 @@ export default class Model {
    * Returns the index of the neuron whose weights are closest to a given weight vector.
    * @param excludeNeuron Will exclude a given neuron from the search (for example to find the second best matching unit).
    */
-  findBestMatchingUnit(weights: number[], excludeNeuron: number = -1): number {
+  findBestMatchingUnit(weights: number[]): number {
     let bmu = 0, dist = Infinity;
     for (let i = 0; i < this.neuronCount; ++i) {
-      if (i === excludeNeuron)
-        // this neuron is excluded
-        continue;
-      
       let d = this._weightMatrix.getRow(i).reduce((sum, v, i) => sum + (weights[i] - v) ** 2, 0);
       if (d < dist) {
         dist = d;
@@ -110,5 +106,17 @@ export default class Model {
     }
 
     return bmu;
+  }
+
+  findBestMatchingUnits(weights: number[], count: number): number[] {
+    let dists = new Map<number, number>();
+    let neurons = [];
+    for (let i = 0; i < this.neuronCount; ++i) {
+      let d = this._weightMatrix.getRow(i).reduce((sum, v, i) => sum + (weights[i] - v) ** 2, 0);
+      dists.set(i, d);
+      neurons.push(i);
+    }
+
+    return neurons.sort((a, b) => dists.get(a)! - dists.get(b)!).slice(0, count);
   }
 }
