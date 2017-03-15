@@ -25,10 +25,18 @@ interface IState {
   datasetRevision: number;
 
   selectedDatasource: DatasetSource | null;
+
+  quantizationError: number;
+  topographicError: number;
 }
 
 export default class App extends React.Component<void, IState> {
   som: SOMController = new SOMController();
+
+  errorPrecision = {
+    animating: 100,
+    idle: 1000
+  };
   
   constructor() {
     super();
@@ -41,10 +49,27 @@ export default class App extends React.Component<void, IState> {
       datasetRevision: 0,
       modelRevision: 0,
 
-      selectedDatasource: null
-    };
+      selectedDatasource: null,
 
+      quantizationError: 0,
+      topographicError: 0
+    };
+  }
+
+  protected initializeModel() {
     this.som.initialize();
+    this.recalculateError(this.errorPrecision.idle);
+  }
+
+  componentDidMount() {
+    this.initializeModel();
+  }
+
+  protected recalculateError(sampleCount: number) {
+    this.setState({
+      quantizationError: this.som.getQuantizationError(sampleCount),
+      topographicError: this.som.getTopographicError(sampleCount)
+    });
   }
 
   protected startAnimating() {
@@ -64,7 +89,7 @@ export default class App extends React.Component<void, IState> {
         let iterationCount = Math.floor(animationCounter);
         
         this.som.iterate(iterationCount);
-        this.forceUpdate();
+        this.recalculateError(this.errorPrecision.animating);
 
         animationCounter -= iterationCount;
       }, 1000 / 30) as any
@@ -73,6 +98,8 @@ export default class App extends React.Component<void, IState> {
 
   protected stopAnimating() {
     clearInterval(this.state.animationInterval as any);
+
+    this.recalculateError(this.errorPrecision.idle);
     this.setState({
       animationInterval: null
     });
@@ -110,6 +137,8 @@ export default class App extends React.Component<void, IState> {
 
         if (t >= 1) {
           clearInterval(this.state.stepAnimationInterval as any);
+          
+          this.recalculateError(this.errorPrecision.idle);
           this.setState({
             stepAnimationInterval: null
           });
@@ -123,45 +152,13 @@ export default class App extends React.Component<void, IState> {
     });
   }
 
-/*
-  protected iterateAnimated() {
-    let t = 0;
-    this.setState({
-      stepAnimationInterval: setInterval(() => {
-        positions.forEach(([ a, b ], neuron) => {
-          let e = t < 0.5 ? 4 * Math.pow(t, 3) : 4 * Math.pow(t - 1, 3) + 1;
-          
-          neuron.weights
-            .zero()
-            .add(a, 1 - e)
-            .add(b, e);
-        });
-
-        this.forceUpdate();
-        if (t >= 1) {
-          clearInterval(this.state.stepAnimationInterval as any);
-          this.setState({
-            stepAnimationInterval: null
-          });
-
-          return;
-        }
-
-        t += 0.05; // @todo Magic constant
-      }, 1000 / 30) as any
-    });
-  }
-*/
-
   get isAnimating() {
     return this.state.animationInterval !== null;
   }
 
   protected reset() {
     this.stopAnimating();
-
-    this.som.initialize();
-    this.forceUpdate();
+    this.initializeModel();
   }
 
   render() {
@@ -199,7 +196,7 @@ export default class App extends React.Component<void, IState> {
               dataset={this.som.dataset}
               revision={this.state.datasetRevision}
               onUpdate={() => {
-                this.som.initialize();
+                this.initializeModel();
                 this.setState({ datasetRevision: this.state.datasetRevision + 1 });
               }}
               onSelect={selectedDatasource => this.setState({ selectedDatasource })}
@@ -217,13 +214,12 @@ export default class App extends React.Component<void, IState> {
               modelRevision={this.state.modelRevision}
 
               onUpdateModel={() => {
-                this.som.initialize();
+                this.initializeModel();
                 this.setState({ modelRevision: this.state.modelRevision + 1 });
               }}
               onChangeInitializer={initializer => {
                 this.som.initializer = initializer;
-                this.som.initialize();
-                this.forceUpdate();
+                this.initializeModel();
               }}
             />
           </Tab>
@@ -232,13 +228,12 @@ export default class App extends React.Component<void, IState> {
             label="TRAIN"
           >
             <TrainTab
-              iterationIndex={this.som.trainer.currentIteration}
-              iterationTotal={this.som.trainer.maxIteration}
+              trainer={this.som.trainer}
+              
+              quantizationError={this.state.quantizationError}
+              topographicError={this.state.topographicError}
 
-              learningFactor={this.som.trainer.learningRate}
-              neighborSize={this.som.trainer.neighborSize}
               isTraining={this.isAnimating}
-              hasFinishedTraining={this.som.trainer.hasFinished}
 
               animationSpeed={this.state.animationSpeed}
               setAnimationSpeed={animationSpeed => this.setState({ animationSpeed })}

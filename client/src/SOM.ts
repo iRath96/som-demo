@@ -38,4 +38,36 @@ export default class SOMController {
   iterate(count: number) {
     this.trainer.iterate(count);
   }
+
+  getQuantizationError(sampleCount: number = 100) {
+    let stride = Math.max(1, Math.floor(this.dataset.sampleCount / sampleCount));
+
+    let sum = 0, count = 0;
+    for (let i = 0; i < this.dataset.sampleCount; i += stride) {
+      let point = this.dataset.getSample(i);
+      let bmu = this.model.findBestMatchingUnit(point);
+      let point2 = this.model.weightMatrix.getRow(bmu);
+
+      sum += Math.sqrt(point.map((a, i) => (a - point2[i]) ** 2).reduce((sum, v) => sum + v));
+      ++count;
+    }
+
+    return sum / count;
+  }
+
+  getTopographicError(sampleCount: number) {
+    let stride = Math.max(1, Math.floor(this.dataset.sampleCount / sampleCount));
+
+    let sum = 0, count = 0;
+    for (let i = 0; i < this.dataset.sampleCount; i += stride) {
+      let point = this.dataset.getSample(i);
+      let bmu = this.model.findBestMatchingUnit(point);
+      let bmu2 = this.model.findBestMatchingUnit(point, bmu);
+
+      sum += this.model.distanceMatrix.get(bmu, bmu2) <= 1 ? 0 : 1;
+      ++count;
+    }
+
+    return sum / count;
+  }
 }

@@ -5,17 +5,18 @@ import LinearProgress from "material-ui/LinearProgress";
 
 import LogSlider from "../LogSlider";
 
+import Trainer from "som/Trainer";
+
 const style = require("./TrainTab.scss");
 
 
 export interface IProps {
-  iterationIndex: number;
-  iterationTotal: number;
+  trainer: Trainer;
 
-  learningFactor: number;
-  neighborSize: number;
+  quantizationError: number;
+  topographicError: number;
+
   isTraining: boolean;
-  hasFinishedTraining: boolean;
 
   animationSpeed: number;
   setAnimationSpeed(value: number): void;
@@ -29,7 +30,7 @@ export interface IProps {
 
 export default class TrainTab extends React.Component<IProps, void> {
   protected renderProgress() {
-    let percentCompleted = Math.round(this.props.iterationIndex * 100 / this.props.iterationTotal);
+    let percentCompleted = Math.round(this.props.trainer.progress * 100);
     
     return <div className="progress">
       <LinearProgress
@@ -40,7 +41,7 @@ export default class TrainTab extends React.Component<IProps, void> {
         marginTop: 5,
         textAlign: "center"
       }}>
-        #{this.props.iterationIndex}
+        #{this.props.trainer.currentIteration}
         <span style={{
           paddingLeft: 5,
           opacity: 0.5
@@ -59,7 +60,7 @@ export default class TrainTab extends React.Component<IProps, void> {
         iconClassName="material-icons"
         tooltip={this.props.isTraining ? "Stop training" : "Start training"}
         onClick={toggleTraining}
-        disabled={this.props.hasFinishedTraining}
+        disabled={this.props.trainer.hasFinished}
       >
         {this.props.isTraining ? "pause" : "play_arrow"}
       </IconButton>
@@ -67,7 +68,7 @@ export default class TrainTab extends React.Component<IProps, void> {
         iconClassName="material-icons"
         tooltip="One iteration"
         onClick={this.props.iterateSingle}
-        disabled={this.props.hasFinishedTraining}
+        disabled={this.props.trainer.hasFinished}
       >
         skip_next
       </IconButton>
@@ -101,8 +102,10 @@ export default class TrainTab extends React.Component<IProps, void> {
 
   protected renderStatus() {
     return <div className="status">
-      <b>LF:</b> {this.props.learningFactor.toFixed(5)}<br />
-      <b>NS:</b> {this.props.neighborSize.toFixed(5)}
+      <b>LF:</b> {this.props.trainer.learningRate.toFixed(5)}<br />
+      <b>NS:</b> {this.props.trainer.neighborSize.toFixed(5)}<br />
+      <b>Eq:</b> {this.props.isTraining ? "~" : ""} {this.props.quantizationError.toFixed(3)}<br />
+      <b>Et:</b> {this.props.isTraining ? "~" : ""} {this.props.topographicError.toFixed(3)}
     </div>;
   }
 
