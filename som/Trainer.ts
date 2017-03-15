@@ -63,7 +63,7 @@ export default class Trainer {
         // adjust every neuron's weights
         let distSqr = this.model.distanceMatrix.get(bmu, i);
         let exponent = -distSqr / (2 * neighborSizeSqr);
-        let df = exponent < -4 ? 0 : Math.exp(exponent);
+        let df = exponent < -2.3 ? 0 : Math.exp(exponent);
 
         let lf = 1.0 - learningRate * df;
         for (let dim = 0; dim < this.model.dataDimension; ++dim)

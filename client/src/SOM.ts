@@ -25,9 +25,9 @@ export default class SOMController {
     this.dataset = new Dataset(sources);
     
     this.trainer = new Trainer(this.model, new BootstrapDatasetSampler(this.dataset));
-    this.trainer.learningRateBounds = { start: 0.1, end: 0.005 };
-    this.trainer.neighborSizeBounds = { start: 12 / 2, end: 0.1 };
-    this.trainer.maxIteration = 10000;
+    this.trainer.learningRateBounds = { start: 0.2, end: 0.02 };
+    this.trainer.neighborSizeBounds = { start: 4, end: 0.1 };
+    this.trainer.maxIteration = 5000;
   }
 
   initialize() {
