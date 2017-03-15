@@ -3,6 +3,10 @@ import * as React from "react";
 export interface IProps {
   value: number;
   onChange(value: number): void;
+
+  min?: number;
+  max?: number;
+  step?: number;
 }
 
 export interface IState {
@@ -44,12 +48,15 @@ export default class NumberInput extends React.Component<IProps, IState> {
   }
 
   render() {
+    let { value, onChange, ...props } = this.props;
+
     return <input
       type="number"
       value={this.state.value}
       onChange={e => this.setState({ value: e.currentTarget.value })}
       onKeyDown={e => this.handleKeyDown(e)}
       onBlur={e => this.commitValue()}
+      {...props}
     />;
   }
 }

@@ -28,6 +28,8 @@ export default class DataTab extends React.Component<IProps, void> {
       <div className={style["control-with-label"]}>
         <span>Size</span>
         <NumberInput
+          min={1}
+          step={1}
           onChange={width => {
             this.props.model.setDimensions(width, this.props.model.height);
             this.props.onUpdateModel();
@@ -36,6 +38,8 @@ export default class DataTab extends React.Component<IProps, void> {
         />
         &times;
         <NumberInput
+          min={1}
+          step={1}
           onChange={height => {
             this.props.model.setDimensions(this.props.model.width, height);
             this.props.onUpdateModel();
@@ -67,6 +71,8 @@ export default class DataTab extends React.Component<IProps, void> {
       <div className={style["control-with-label"]}>
         <span># iterations</span>
         <NumberInput
+          min={0}
+          step={1000}
           value={this.props.trainer.maxIteration}
           onChange={v => this.props.trainer.maxIteration = v}
         />
@@ -74,10 +80,12 @@ export default class DataTab extends React.Component<IProps, void> {
       <div className={style["control-with-label"]}>
         <span>Learning rate</span>
         <NumberInput
+          step={0.01}
           value={this.props.trainer.learningRateBounds.start}
           onChange={v => this.props.trainer.learningRateBounds.start = v}
         /> to
         <NumberInput
+          step={0.001}
           value={this.props.trainer.learningRateBounds.end}
           onChange={v => this.props.trainer.learningRateBounds.end = v}
         />
@@ -85,10 +93,12 @@ export default class DataTab extends React.Component<IProps, void> {
       <div className={style["control-with-label"]}>
         <span>Neighbor size</span>
         <NumberInput
+          step={1}
           value={this.props.trainer.neighborSizeBounds.start}
           onChange={v => this.props.trainer.neighborSizeBounds.start = v}
         /> to
         <NumberInput
+          step={0.01}
           value={this.props.trainer.neighborSizeBounds.end}
           onChange={v => this.props.trainer.neighborSizeBounds.end = v}
         />
