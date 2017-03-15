@@ -23,7 +23,15 @@ export class RandomInitializer extends Initializer {
 /** Initializes all neuron weights using a PCA dimension reduction. */
 export class PCAInitializer extends Initializer {
   performInitialization(dataset: Dataset, model: Model) {
-    const pca = new PCA(dataset.getAllSamples(), 2);
+    let pca: PCA;
+    try {
+      pca = new PCA(dataset.getAllSamples(), 2);
+    } catch (e) {
+      console.warn(e);
+      // no PCA convergence
+      return;
+    }
+
     for (let x = 0; x < model.width; ++x)
       for (let y = 0; y < model.height; ++y) {
         let weights = pca.recover([ (x + 0.5) / model.width, (y + 0.5) / model.height ]);

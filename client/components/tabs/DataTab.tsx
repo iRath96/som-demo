@@ -393,3 +393,13 @@ DataTab.examples.push(new class extends Example {
     ];
   }
 });
+
+DataTab.examples.push(new class extends Example {
+  name = "Spiral";
+  generate() {
+    return [
+      new CallbackDatasetSource(1000, require("raw-loader!client/assets/examples/spiral.js"))
+    ];
+  }
+});
+
