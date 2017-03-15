@@ -4,6 +4,7 @@ import IconButton from "material-ui/IconButton";
 import LinearProgress from "material-ui/LinearProgress";
 
 import LogSlider from "../LogSlider";
+import IterationPlot from "../IterationPlot";
 
 import Trainer from "som/Trainer";
 
@@ -104,6 +105,24 @@ export default class TrainTab extends React.Component<IProps, void> {
     return <div className="status">
       <b>LF:</b> {this.props.trainer.learningRate.toFixed(5)}<br />
       <b>NS:</b> {this.props.trainer.neighborSize.toFixed(5)}<br />
+      <IterationPlot
+        width={200}
+        height={50}
+        min={0}
+        max={0.2}
+        iteration={this.props.trainer.currentIteration}
+        maxIteration={this.props.trainer.maxIteration}
+        value={this.props.quantizationError}
+      />
+      <IterationPlot
+        width={200}
+        height={50}
+        min={0}
+        max={0.5}
+        iteration={this.props.trainer.currentIteration}
+        maxIteration={this.props.trainer.maxIteration}
+        value={this.props.topographicError}
+      />
       <b>Eq:</b> {this.props.isTraining ? "~" : ""} {this.props.quantizationError.toFixed(3)}<br />
       <b>Et:</b> {this.props.isTraining ? "~" : ""} {this.props.topographicError.toFixed(3)}
     </div>;
