@@ -217,6 +217,9 @@ export default class App extends React.Component<void, IState> {
                 this.initializeModel();
                 this.setState({ modelRevision: this.state.modelRevision + 1 });
               }}
+              onUpdateTrainer={() => {
+                this.forceUpdate();
+              }}
               onChangeInitializer={initializer => {
                 this.som.initializer = initializer;
                 this.initializeModel();

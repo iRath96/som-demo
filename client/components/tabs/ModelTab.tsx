@@ -1,6 +1,8 @@
 import * as React from "react";
 
 import NumberInput from "../NumberInput";
+import LearningRatePreview from "../LearningRatePreview";
+
 import SelectField from "material-ui/SelectField";
 import MenuItem from "material-ui/MenuItem";
 
@@ -20,6 +22,7 @@ export interface IProps {
 
   onChangeInitializer(initializer: Initializer): void;
   onUpdateModel(): void;
+  onUpdateTrainer(): void;
 }
 
 export default class DataTab extends React.Component<IProps, void> {
@@ -74,7 +77,10 @@ export default class DataTab extends React.Component<IProps, void> {
           min={0}
           step={1000}
           value={this.props.trainer.maxIteration}
-          onChange={v => this.props.trainer.maxIteration = v}
+          onChange={v => {
+            this.props.trainer.maxIteration = v;
+            this.props.onUpdateTrainer();
+          }}
         />
       </div>
       <div className={style["control-with-label"]}>
@@ -82,12 +88,18 @@ export default class DataTab extends React.Component<IProps, void> {
         <NumberInput
           step={0.01}
           value={this.props.trainer.learningRateBounds.start}
-          onChange={v => this.props.trainer.learningRateBounds.start = v}
+          onChange={v => {
+            this.props.trainer.learningRateBounds.start = v;
+            this.props.onUpdateTrainer();
+          }}
         /> to
         <NumberInput
           step={0.001}
           value={this.props.trainer.learningRateBounds.end}
-          onChange={v => this.props.trainer.learningRateBounds.end = v}
+          onChange={v => {
+            this.props.trainer.learningRateBounds.end = v;
+            this.props.onUpdateTrainer();
+          }}
         />
       </div>
       <div className={style["control-with-label"]}>
@@ -95,14 +107,26 @@ export default class DataTab extends React.Component<IProps, void> {
         <NumberInput
           step={1}
           value={this.props.trainer.neighborSizeBounds.start}
-          onChange={v => this.props.trainer.neighborSizeBounds.start = v}
+          onChange={v => {
+            this.props.trainer.neighborSizeBounds.start = v;
+            this.props.onUpdateTrainer();
+          }}
         /> to
         <NumberInput
           step={0.01}
           value={this.props.trainer.neighborSizeBounds.end}
-          onChange={v => this.props.trainer.neighborSizeBounds.end = v}
+          onChange={v => {
+            this.props.trainer.neighborSizeBounds.end = v;
+            this.props.onUpdateTrainer();
+          }}
         />
       </div>
+      <LearningRatePreview
+        learningRate={this.props.trainer.learningRate}
+        neighborSize={this.props.trainer.neighborSize}
+        width={200}
+        height={150}
+      />
     </div>;
   }
 

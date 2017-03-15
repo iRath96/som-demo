@@ -5,6 +5,7 @@ import LinearProgress from "material-ui/LinearProgress";
 
 import LogSlider from "../LogSlider";
 import IterationPlot from "../IterationPlot";
+import LearningRatePreview from "../LearningRatePreview";
 
 import Trainer from "som/Trainer";
 
@@ -124,7 +125,13 @@ export default class TrainTab extends React.Component<IProps, void> {
         value={this.props.topographicError}
       />
       <b>Eq:</b> {this.props.isTraining ? "~" : ""} {this.props.quantizationError.toFixed(3)}<br />
-      <b>Et:</b> {this.props.isTraining ? "~" : ""} {this.props.topographicError.toFixed(3)}
+      <b>Et:</b> {this.props.isTraining ? "~" : ""} {this.props.topographicError.toFixed(3)}<br />
+      <LearningRatePreview
+        learningRate={this.props.trainer.learningRate}
+        neighborSize={this.props.trainer.neighborSize}
+        width={200}
+        height={150}
+      />
     </div>;
   }
 
