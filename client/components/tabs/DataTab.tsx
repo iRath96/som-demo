@@ -405,4 +405,3 @@ DataTab.examples.push(new class extends Example {
     ];
   }
 });
-

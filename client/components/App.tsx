@@ -9,6 +9,7 @@ import GridPlot from "./GridPlot";
 import DataTab from "./tabs/DataTab";
 import ModelTab from "./tabs/ModelTab";
 import TrainTab from "./tabs/TrainTab";
+import SettingsTab from "./tabs/SettingsTab";
 
 import DatasetSource from "som/DatasetSource";
 import SOMController from "client/src/SOM";
@@ -28,6 +29,9 @@ interface IState {
 
   quantizationError: number;
   topographicError: number;
+
+  displayMap: boolean;
+  displayUMatrix: boolean;
 }
 
 export default class App extends React.Component<void, IState> {
@@ -52,7 +56,10 @@ export default class App extends React.Component<void, IState> {
       selectedDatasource: null,
 
       quantizationError: 0,
-      topographicError: 0
+      topographicError: 0,
+
+      displayMap: true,
+      displayUMatrix: true
     };
   }
 
@@ -185,6 +192,8 @@ export default class App extends React.Component<void, IState> {
           tileHeight={8}
           width={this.som.model.width}
           height={this.som.model.height}
+          displayMap={this.state.displayMap}
+          displayUMatrix={this.state.displayUMatrix}
         />
       </div>
       <div className={style["sidebar"]}>
@@ -253,8 +262,13 @@ export default class App extends React.Component<void, IState> {
             icon={<FontIcon className="material-icons">settings</FontIcon>}
             label="OTHER"
           >
-            View settings<br />
-            About
+            <SettingsTab
+              displayMap={this.state.displayMap}
+              displayUMatrix={this.state.displayUMatrix}
+
+              onUpdateDisplayMap={displayMap => this.setState({ displayMap })}
+              onUpdateDisplayUMatrix={displayUMatrix => this.setState({ displayUMatrix })}
+            />
           </Tab>
         </Tabs>
       </div>

@@ -4,10 +4,15 @@ import Model from "som/Model";
 
 export interface IProps {
   model: Model;
+
   tileWidth: number;
   tileHeight: number;
+
   width: number;
   height: number;
+
+  displayMap: boolean;
+  displayUMatrix: boolean;
 }
 
 export default class GridPlot extends React.Component<IProps, void> {
@@ -29,44 +34,62 @@ export default class GridPlot extends React.Component<IProps, void> {
         distances.push(Math.sqrt(dist));
       }
     
-    return distances.reduce((sum, v) => sum + v) / distances.length;
+    return distances.reduce((sum, v) => sum + v, 0) / distances.length;
   }
 
   protected redraw(props: IProps) {
+    let width = 0;
+    width += props.displayMap ? 1 : 0;
+    width += props.displayUMatrix ? 1 : 0;
+
     let canvas = this.refs["canvas"] as HTMLCanvasElement;
-    canvas.width = 2 * props.width * props.tileWidth;
+    canvas.width = width * props.width * props.tileWidth;
     canvas.height = props.height * props.tileHeight;
     
     let ctx = canvas.getContext("2d")!;
 
     let umatrix = new Map<number, number>();
-    for (let i = 0; i < props.model.neuronCount; ++i)
-      umatrix.set(i, this.avgDistForNeuron(i, props.model));
-    
-    let v = [ ...umatrix.values() ].sort((a, b) => a - b);
-    let minDist = v.shift()!;
-    let maxDist = v.pop()!;
+    let minDist = 0, maxDist = 0;
+
+    if (props.displayUMatrix) {
+      for (let i = 0; i < props.model.neuronCount; ++i)
+        umatrix.set(i, this.avgDistForNeuron(i, props.model));
+      
+      let v = [ ...umatrix.values() ].sort((a, b) => a - b);
+      minDist = v.shift()!;
+      maxDist = v.pop()!;
+    }
 
     // redraw canvas
     for (let neuronIndex = 0; neuronIndex < props.model.neuronCount; ++neuronIndex) {
+      let xOffset = 0;
       let [ x, y ] = props.model.neuronPositionInLattice(neuronIndex);
-      ctx.fillStyle = this.colorForNeuron(neuronIndex, props.model);
-      ctx.fillRect(
-        x * props.tileWidth,
-        y * props.tileHeight,
-        props.tileWidth,
-        props.tileHeight
-      );
 
-      let normDist = (umatrix.get(neuronIndex)! - minDist) / (maxDist - minDist);
-      let shade = Math.floor(normDist * 255);
-      ctx.fillStyle = `rgb(${shade}, ${shade}, ${shade})`;
-      ctx.fillRect(
-        (x + props.width) * props.tileWidth,
-        y * props.tileHeight,
-        props.tileWidth,
-        props.tileHeight
-      );
+      if (props.displayMap) {
+        ctx.fillStyle = this.colorForNeuron(neuronIndex, props.model);
+        ctx.fillRect(
+          xOffset + x * props.tileWidth,
+          y * props.tileHeight,
+          props.tileWidth,
+          props.tileHeight
+        );
+
+        xOffset += props.width * props.tileWidth;
+      }
+
+      if (props.displayUMatrix) {
+        let normDist = (umatrix.get(neuronIndex)! - minDist) / (maxDist - minDist);
+        let shade = Math.floor(normDist * 255);
+        ctx.fillStyle = `rgb(${shade}, ${shade}, ${shade})`;
+        ctx.fillRect(
+          xOffset + x * props.tileWidth,
+          y * props.tileHeight,
+          props.tileWidth,
+          props.tileHeight
+        );
+
+        xOffset += props.width * props.tileWidth;
+      }
     }
   }
 
@@ -85,8 +108,8 @@ export default class GridPlot extends React.Component<IProps, void> {
   render() {
     return <canvas
       ref="canvas"
-      width={2 * this.props.width * this.props.tileWidth}
-      height={this.props.height * this.props.tileHeight}
+      width={0}
+      height={0}
     />;
   }
 }
