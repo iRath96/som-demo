@@ -100,6 +100,7 @@ export default class App extends React.Component<void, IState> {
         this.recalculateError(this.errorPrecision.animating);
 
         animationCounter -= iterationCount;
+        console.log(animationCounter);
       }, 1000 / 30) as any
     })
   }

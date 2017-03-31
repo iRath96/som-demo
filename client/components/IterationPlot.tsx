@@ -51,10 +51,12 @@ export default class IterationPlot extends React.Component<IProps, void> {
     if (this.points.length > 1) {
       ctx.beginPath();
       this.points.reduce((lastPoint, point) => {
-        ctx.moveTo(x(lastPoint.iteration), y(lastPoint.value));
-        ctx.lineTo(x(point.iteration), y(point.value));
+        if (lastPoint) {
+          ctx.moveTo(x(lastPoint.iteration), y(lastPoint.value));
+          ctx.lineTo(x(point.iteration), y(point.value));
+        }
         return point;
-      });
+      }, undefined);
       ctx.stroke();
       ctx.closePath();
     }
