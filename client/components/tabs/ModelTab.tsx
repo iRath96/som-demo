@@ -26,6 +26,10 @@ export interface IProps {
 }
 
 export default class DataTab extends React.Component<IProps, void> {
+  protected resizeHandler = () => {
+    this.forceUpdate();
+  };
+
   protected renderModelControls() {
     return <div>
       <div className={style["control-with-label"]}>
@@ -70,6 +74,8 @@ export default class DataTab extends React.Component<IProps, void> {
   }
 
   protected renderTrainingControls() {
+    let parentWidth = this.refs["tab"] ? (this.refs["tab"] as HTMLElement).clientWidth - 30 : 200;
+
     return <div>
       <div className={style["control-with-label"]}>
         <span># iterations</span>
@@ -124,14 +130,25 @@ export default class DataTab extends React.Component<IProps, void> {
       <LearningRatePreview
         learningRate={this.props.trainer.learningRate}
         neighborSize={this.props.trainer.neighborSize}
-        width={200}
+        width={parentWidth}
         height={150}
+        style={{
+          marginTop: 30
+        }}
       />
     </div>;
   }
 
+  componentDidMount() {
+    window.addEventListener("resize", this.resizeHandler);
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener("resize", this.resizeHandler);
+  }
+
   render() {
-    return <div className={style["tab"]}>
+    return <div className={style["tab"]} ref={"tab"}>
       <h2>Model</h2>
       {this.renderModelControls()}
       <hr />

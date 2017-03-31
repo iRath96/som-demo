@@ -4,6 +4,8 @@ import { List, ListItem } from "material-ui/List";
 import Subheader from "material-ui/Subheader";
 import Checkbox from "material-ui/Checkbox";
 
+const style = require("./SettingsTab.scss");
+
 
 export interface IProps {
   displayMap: boolean;
@@ -51,7 +53,7 @@ export default class SettingsTab extends React.Component<IProps, IState> {
   }
 
   render() {
-    return <div>
+    return <div className={style["tab"]}>
       {this.renderSettings()}
       <hr />
       {this.renderAbout()}

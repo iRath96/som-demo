@@ -23,6 +23,8 @@ export interface IProps {
 
   width: number;
   height: number;
+
+  style?: React.CSSProperties;
 }
 
 export default class LearningRatePreview extends React.Component<IProps, void> {
@@ -62,9 +64,11 @@ export default class LearningRatePreview extends React.Component<IProps, void> {
   }
 
   protected project(vec: number[]) {
+    let x = (vec[0] + (vec[2] - 0.5) * 0.5) * 0.8 + 0.1;
+    let y = 0.8 - (vec[1] + vec[2] * 0.5) * 0.6;
     return [
-      ((vec[0] + (vec[2] - 0.5) * 0.5) * 0.6 + 0.2) * this.props.width,
-      (0.8 - (vec[1] + vec[2] * 0.5) * 0.6) * this.props.height
+      x * this.props.height + (this.props.width - this.props.height) / 2,
+      y * this.props.height
     ];
   }
 
@@ -122,7 +126,10 @@ export default class LearningRatePreview extends React.Component<IProps, void> {
     }
 
     // render
-    return <svg width={this.props.width} height={this.props.height}>
+    return <svg width={this.props.width} height={this.props.height} style={this.props.style}>
+      <text x="0" y="15" fill="#333">LR: {this.props.learningRate.toFixed(3)}</text>
+      <text x="0" y="30" fill="#333">NS: {this.props.neighborSize.toFixed(3)}</text>
+
       {interior}
     </svg>;
   }

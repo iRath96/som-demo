@@ -31,6 +31,10 @@ export interface IProps {
 }
 
 export default class TrainTab extends React.Component<IProps, void> {
+  protected resizeHandler = () => {
+    this.forceUpdate();
+  };
+
   protected renderProgress() {
     let percentCompleted = Math.round(this.props.trainer.progress * 100);
     
@@ -103,40 +107,48 @@ export default class TrainTab extends React.Component<IProps, void> {
   }
 
   protected renderStatus() {
+    let parentWidth = this.refs["tab"] ? (this.refs["tab"] as HTMLElement).clientWidth - 30 : 200;
+
     return <div className="status">
-      <b>LF:</b> {this.props.trainer.learningRate.toFixed(5)}<br />
-      <b>NS:</b> {this.props.trainer.neighborSize.toFixed(5)}<br />
       <IterationPlot
-        width={200}
+        width={parentWidth}
         height={50}
         min={0}
         max={0.2}
         iteration={this.props.trainer.currentIteration}
         maxIteration={this.props.trainer.maxIteration}
+        title={"Eq"}
         value={this.props.quantizationError}
       />
       <IterationPlot
-        width={200}
+        width={parentWidth}
         height={50}
         min={0}
         max={0.5}
         iteration={this.props.trainer.currentIteration}
         maxIteration={this.props.trainer.maxIteration}
+        title={"Et"}
         value={this.props.topographicError}
       />
-      <b>Eq:</b> {this.props.isTraining ? "~" : ""} {this.props.quantizationError.toFixed(3)}<br />
-      <b>Et:</b> {this.props.isTraining ? "~" : ""} {this.props.topographicError.toFixed(3)}<br />
       <LearningRatePreview
         learningRate={this.props.trainer.learningRate}
         neighborSize={this.props.trainer.neighborSize}
-        width={200}
+        width={parentWidth}
         height={150}
       />
     </div>;
   }
 
+  componentDidMount() {
+    window.addEventListener("resize", this.resizeHandler);
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener("resize", this.resizeHandler);
+  }
+
   render() {
-    return <div className={style["train-tab"]}>
+    return <div className={style["tab"]} ref={"tab"}>
       {this.renderControls()}
       {this.renderSpeedControl()}
 
@@ -144,6 +156,7 @@ export default class TrainTab extends React.Component<IProps, void> {
 
       <hr />
 
+      <h2>Status</h2>
       {this.renderStatus()}
     </div>;
   }

@@ -1,6 +1,6 @@
-:local(.train-tab) {
-  padding: 10px 20px;
+@import "./Tab.scss";
 
+:local(.tab) {
   div.controls {
     text-align: center;
   }
@@ -9,8 +9,11 @@
     margin: 10px 0 20px;
   }
 
-  hr {
-    border: none;
-    border-top: 1px solid #ccc;
+  div.status {
+    text-align: center;
+
+    * {
+      margin-top: 20px;
+    }
   }
 }

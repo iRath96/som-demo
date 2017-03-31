@@ -196,7 +196,7 @@ export default class ScatterPlot extends React.Component<IProps, void> {
 
     let lineMat = new THREE.LineBasicMaterial({
       color: 0xff0000,
-      linewidth: 4
+      linewidth: 1
     });
 
     this.mapGeometry.applyMatrix(
