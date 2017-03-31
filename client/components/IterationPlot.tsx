@@ -38,7 +38,7 @@ export default class IterationPlot extends React.Component<IProps, void> {
     // redraw canvas
     
     // draw text
-    ctx.fillText(`${this.props.title}: ${this.props.value.toFixed(3)}`, 10, 10);
+    ctx.fillText(`${props.title}: ${props.value.toFixed(3)}`, 10, 10);
 
     // draw plot
     ctx.beginPath();
