@@ -48,10 +48,13 @@ export default class SOMController {
       let [ bmu, bmu2 ] = this.model.findBestMatchingUnits(point, 2);
       let point2 = this.model.weightMatrix.getRow(bmu);
 
-      eQ += Math.sqrt(point.map((a, i) => (a - point2[i]) ** 2).reduce((sum, v) => sum + v));
+      eQ += Math.sqrt(point.map((a, i) => (a - point2[i]) ** 2).reduce((sum, v) => sum + v, 0));
       eT += this.model.distanceMatrix.get(bmu, bmu2) <= 1 ? 0 : 1;
       ++count;
     }
+
+    eQ /= sampleCount;
+    eT /= sampleCount;
 
     return {
       eQ, eT
