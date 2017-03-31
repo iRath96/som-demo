@@ -4,7 +4,10 @@
   "description": "Demo of self-organizing maps",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dist": "npm run copy & webpack",
+    "copy": "copyfiles -f ./client/index.html ./dist",
+    "dev": "node ."
   },
   "author": "Alexander Rath",
   "license": "MIT",
@@ -38,6 +41,7 @@
     "@types/react-tap-event-plugin": "0.0.30",
     "@types/webpack": "^2.2.6",
     "copy-webpack-plugin": "^4.0.1",
+    "copyfiles": "^1.2.0",
     "typescript": "^2.2.1"
   }
 }

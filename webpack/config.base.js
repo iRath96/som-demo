@@ -38,8 +38,8 @@ module.exports = {
   ],
 
   output: {
-    path: path.join(process.cwd(), "../dist/assets"),
-    publicPath: "/",
+    path: path.join(__dirname, "../dist/assets"),
+    publicPath: "/assets/",
     filename: "app.js"
   },
 
