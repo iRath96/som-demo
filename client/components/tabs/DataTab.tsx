@@ -114,27 +114,9 @@ class ScriptEditor extends React.Component<{
   protected editorDidMount(editor: any) {
     let monaco = (window as any).monaco;
 
-    monaco.languages.typescript.javascriptDefaults.addExtraLib(`
-      declare enum Distribution {
-        GAUSSIAN,
-        UNIFORM
-      };
-      
-      /** Source */
-      declare var source: {
-        /** Generates a random value. */
-        getRandomValue(index: number, distribution: Distribution): number;
-
-        /** The total count of samples to be generated. */
-        sampleCount: number;
-      };
-
-      /**
-       * The index of the sample currently being generated.
-       * Ranges from 0 to \`source.sampleCount - 1\`
-       */
-      declare var index: number;
-    `);
+    monaco.languages.typescript.javascriptDefaults.addExtraLib(
+      require("raw-loader!client/assets/script-environment.d.ts")
+    );
 
     editor.focus();
   }
@@ -145,13 +127,10 @@ class ScriptEditor extends React.Component<{
     };
 
     return <div>
-      <div>
-        <FlatButton
-          label="Edit"
-          primary={true}
-          onTouchTap={() => this.openModal()}
-        />
-      </div>
+      <span
+        className="js-label"
+        onClick={() => this.openModal()}
+      >JS</span>
       <Dialog
         title="Edit code"
         actions={[
@@ -265,13 +244,12 @@ export default class DataTab extends React.Component<IProps, IState> {
 
   protected renderCallbackSource(source: CallbackDatasetSource, key: number) {
     return <div key={key} className={style["datasource"]}>
-      <span className="js-label">JS</span>
+      <ScriptEditor
+        source={source}
+        onUpdate={this.props.onUpdate}
+      />
       <div className="content">
         {this.renderSourceTitle(source)}
-        <ScriptEditor
-          source={source}
-          onUpdate={this.props.onUpdate}
-        />
       </div>
     </div>;
   }
@@ -292,7 +270,6 @@ export default class DataTab extends React.Component<IProps, IState> {
       >
         remove
       </FontIcon>
-
       {interior}
     </div>;
   }
@@ -315,8 +292,9 @@ export default class DataTab extends React.Component<IProps, IState> {
 
   protected renderToolbar() {
     return <Toolbar style={{
-      height: 28,
-      padding: "6px 8px"
+      height: 36,
+      padding: "6px 8px",
+      lineHeight: "1em"
     }}>
       <ToolbarGroup firstChild={true} style={{ marginLeft: 0 }}>
         <ToolbarTitle
@@ -329,7 +307,7 @@ export default class DataTab extends React.Component<IProps, IState> {
       </ToolbarGroup>
       <ToolbarGroup>
         <IconMenu
-          iconButtonElement={<FontIcon style={{ fontSize: 20 }} className="material-icons">add</FontIcon>}
+          iconButtonElement={<FontIcon style={{ fontSize: 20, marginRight: 8 }} className="material-icons">add</FontIcon>}
         >
           <MenuItem value="1" primaryText="Cluster" onClick={() =>
             this.addSource(new ClusterDatasetSource(1000, [ 0, 0, 0 ], 0.1))

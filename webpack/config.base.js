@@ -59,6 +59,7 @@ module.exports = {
       },
       {
         test: /\.tsx?$/,
+        exclude: /\.d\.ts$/,
         loaders: [ "ts-loader" ]
       }
     ],
