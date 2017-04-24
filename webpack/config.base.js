@@ -38,8 +38,8 @@ module.exports = {
   ],
 
   output: {
-    path: path.join(__dirname, "../dist/assets"),
-    publicPath: "/assets/",
+    path: path.join(__dirname, "../dist/"),
+    publicPath: "/",
     filename: "app.js"
   },
 

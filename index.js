@@ -6,7 +6,7 @@ var WebpackDevServer = require("webpack-dev-server");
 var webpackDevConfig = require("./webpack/config.development");
 
 new WebpackDevServer(webpack(webpackDevConfig), {
-  publicPath: "/assets/",
+  publicPath: "/",
   contentBase: "./client/",
   inline: true,
   hot: true,
