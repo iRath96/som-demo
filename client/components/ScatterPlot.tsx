@@ -7,6 +7,8 @@ import Model from "som/Model";
 
 export interface IProps {
   dataset: Dataset;
+  currentSample: number[] | null;
+
   datasetRevision: number;
 
   model: Model;
@@ -25,6 +27,9 @@ export default class ScatterPlot extends React.Component<IProps, void> {
 
   protected datasetGeometry: THREE.Geometry;
   protected datasetPoints: THREE.ParticleSystem;
+
+  protected sampleIndicatorGeometry: THREE.Geometry;
+  protected sampleIndicatorPoints: THREE.ParticleSystem;
 
   protected mapGeometry: THREE.Geometry;
   protected mapLineSegments: THREE.LineSegments;
@@ -54,6 +59,7 @@ export default class ScatterPlot extends React.Component<IProps, void> {
     this.initializeCoordinateSystem();
     this.updateDatasetGeometry();
     this.initializeMapGeometry();
+    this.initializeSampleIndicatorGeometry();
   }
 
   protected initializeCoordinateSystem() {
@@ -360,6 +366,38 @@ export default class ScatterPlot extends React.Component<IProps, void> {
     this.updateAspectRatio();
   }
 
+  protected initializeSampleIndicatorGeometry() {
+    let mat = new THREE.ParticleBasicMaterial({
+      color: 0xFF00FF,
+      size: 0.05
+    });
+
+    this.sampleIndicatorGeometry = new THREE.Geometry();
+    this.sampleIndicatorGeometry.vertices.push(new THREE.Vector3(0, 0, 0));
+
+    this.sampleIndicatorPoints = new THREE.ParticleSystem(this.sampleIndicatorGeometry, mat);
+  }
+
+  protected updateCurrentSample(currentSample: number[] | null) {
+    if (!currentSample) {
+      this.scatterPlot.remove(this.sampleIndicatorPoints);
+      return;
+    }
+
+    let vertex = this.sampleIndicatorGeometry.vertices[0];
+    [ vertex.x, vertex.y, vertex.z ] = currentSample;
+
+    this.sampleIndicatorGeometry.applyMatrix(
+      new THREE.Matrix4().makeTranslation(-0.5, -0.5, -0.5)
+    );
+
+    if (this.scatterPlot.children.indexOf(this.sampleIndicatorPoints) > -1) {
+      this.sampleIndicatorGeometry.verticesNeedUpdate = true;
+    } else {
+      this.scatterPlot.add(this.sampleIndicatorPoints);
+    }
+  }
+
   componentWillReceiveProps(props: IProps) {
     if (this.props.datasetRevision !== props.datasetRevision)
       // dataset was updated
@@ -368,6 +406,10 @@ export default class ScatterPlot extends React.Component<IProps, void> {
     if (this.props.modelRevision !== props.modelRevision)
       // model dimensions were updated
       this.initializeMapGeometry();
+    
+    if (this.props.currentSample !== props.currentSample)
+      // update current sample
+      this.updateCurrentSample(props.currentSample);
 
     this.isDirty = true;
   }

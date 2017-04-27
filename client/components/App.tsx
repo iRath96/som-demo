@@ -176,6 +176,7 @@ export default class App extends React.Component<void, IState> {
         <ScatterPlot
           dataset={this.som.dataset}
           datasetRevision={this.state.datasetRevision}
+          currentSample={this.som.trainer.currentSample}
           
           model={this.som.model}
           modelRevision={this.state.modelRevision}

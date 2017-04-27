@@ -18,6 +18,7 @@ const exponentialDecay = (value: DecayingValue, t: number) =>
 /** Used to train a `Model`. */
 export default class Trainer {
   currentIteration: number = 0;
+  currentSample: number[];
   maxIteration: number;
 
   learningRateBounds: DecayingValue;
@@ -51,7 +52,7 @@ export default class Trainer {
     let input: number[];
     for (let iteration = 0; iteration < count; ++iteration) {
       // get a datapoint for this iteration
-      input = this.datasetSampler.nextSample();
+      this.currentSample = input = this.datasetSampler.nextSample();
       
       // get learning properties
       let learningRate = this.learningRate;
