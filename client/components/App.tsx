@@ -171,6 +171,13 @@ export default class App extends React.Component<void, IState> {
   }
 
   render() {
+    let gridScale = Math.floor(
+      256 / Math.sqrt(
+        this.som.model.width ** 2 +
+        this.som.model.height ** 2
+      )
+    );
+
     return <div>
       <div className={style["main-view"]}>
         <ScatterPlot
@@ -190,8 +197,8 @@ export default class App extends React.Component<void, IState> {
       <div className={style["grid-plot"]}>
         <GridPlot
           model={this.som.model}
-          tileWidth={8}
-          tileHeight={8}
+          tileWidth={gridScale}
+          tileHeight={gridScale}
           width={this.som.model.width}
           height={this.som.model.height}
           displayMap={this.state.displayMap}
